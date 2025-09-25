@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const stripe1 = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2022-11-15",
+  apiVersion: "2025-08-27.basil",
 });
 
 app.use(
@@ -22,30 +22,21 @@ app.use(express.json());
 
 app.post("/create-checkout-session", async (req: Request, res: Response) => {
   try {
-    const { priceId } = req.body || {};
+    const { priceId, customerEmail, successUrl, cancelUrl } = req.body || {};
+    
     const session = await stripe1.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      success_url:
-        "https://backend-ten-red-40.vercel.app/success?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "https://backend-ten-red-40.vercel.app/cancel",
+      line_items: [{ price: priceId, quantity: 1 }],
+      customer_email: customerEmail || undefined,
+      success_url: successUrl || "https://backend-ten-red-40.vercel.app/success?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: cancelUrl || "https://backend-ten-red-40.vercel.app/cancel",
     });
 
     res.json({ url: session.url }); 
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error("Error:", error.message);
-      res.status(500).json({ message: error.message });
-    } else {
-      console.error("Unexpected error:", error);
-      res.status(500).json({ error: "An unexpected error occurred" });
-    }
+  } catch (error) {
+    console.error("Error creating checkout session:", error);
+    res.status(500).json({ error: "Failed to create checkout session" });
   }
 });
 
@@ -82,6 +73,31 @@ app.get("/create-payment-intent", (_req: Request, res: Response) => {
 // Basic routes for health checks and root access in browser
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).send("Backend is running.");
+});
+
+app.get("/health", (_req: Request, res: Response) => {
+  res.status(200).json({ status: "ok" });
+});
+
+// Handle Stripe Checkout success redirect
+app.get("/success", (req: Request, res: Response) => {
+  const { session_id } = req.query;
+  if (!session_id) {
+    return res.status(400).json({ error: "Missing session_id" });
+  }
+  res.status(200).json({ 
+    message: "Payment successful", 
+    session_id,
+    // You can fetch the session details from Stripe here if needed
+  });
+});
+
+// Handle Stripe Checkout cancel redirect
+app.get("/cancel", (_req: Request, res: Response) => {
+  res.status(200).json({ 
+    message: "Payment cancelled",
+    // You can redirect to your frontend here or show a message
+  });
 });
 
 // Export the Express app for serverless environments
