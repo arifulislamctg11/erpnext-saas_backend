@@ -79,7 +79,7 @@ app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok" });
 });
 
-// Handle Stripe Checkout success redirect
+
 app.get("/success", (req: Request, res: Response) => {
   const { session_id } = req.query;
   if (!session_id) {
@@ -88,22 +88,22 @@ app.get("/success", (req: Request, res: Response) => {
   res.status(200).json({ 
     message: "Payment successful", 
     session_id,
-    // You can fetch the session details from Stripe here if needed
+   
   });
 });
 
-// Handle Stripe Checkout cancel redirect
+
 app.get("/cancel", (_req: Request, res: Response) => {
   res.status(200).json({ 
     message: "Payment cancelled",
-    // You can redirect to your frontend here or show a message
+  
   });
 });
 
-// Export the Express app for serverless environments
+
 export default app;
 
-// Start server only when running locally (not on Vercel)
+
 if (process.env.VERCEL !== "1") {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
