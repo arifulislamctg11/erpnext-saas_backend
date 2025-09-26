@@ -1,4 +1,6 @@
 import express from "express";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
 import type { Request, Response } from "express";
 import Stripe from "stripe";
 import cors from "cors";
@@ -12,13 +14,69 @@ const PORT = process.env.PORT || 5000;
 const stripe1 = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2025-08-27.basil",
 });
-
 app.use(
   cors({
-    origin: true,
+    origin: [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "https://innovatun-23ee3.web.app/",
+      "https://innovatun-23ee3.firebaseapp.com/"
+
+    ],
+    credentials: true,
   })
 );
 app.use(express.json());
+
+app.use(cookieParser());
+
+
+
+// Issue JWT cookie
+app.post("/jwt", (req: Request, res: Response) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  const token = jwt.sign({ sub: email, email }, process.env.JWT_SECRET as string, {
+    expiresIn: "7d",
+  });
+
+  res.cookie("session", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+  });
+
+  return res.status(200).json({ ok: true });
+});
+
+// Logout clears the same cookie
+app.post("/logout", (_req: Request, res: Response) => {
+  res
+    .clearCookie("session", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
+    })
+    .send({ success: true });
+});
+
+// Auth middleware (reads the same cookie)
+function requireAuth(req: Request, res: Response, next: () => void) {
+  const token = (req as any).cookies?.session as string | undefined;
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET as string);
+    (req as any).user = payload;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
 
 app.post("/create-checkout-session", async (req: Request, res: Response) => {
   try {
