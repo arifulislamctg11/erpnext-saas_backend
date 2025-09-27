@@ -5,7 +5,7 @@ import type { Request, Response } from "express";
 import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 
 dotenv.config();
 
@@ -97,7 +97,7 @@ function requireAuth(req: Request, res: Response, next: () => void) {
 
 app.post("/create-checkout-session", async (req: Request, res: Response) => {
   try {
-    const { priceId, customerEmail, successUrl, cancelUrl } = req.body || {};
+    const { priceId, customerEmail, planName, planAmount, successUrl, cancelUrl } = req.body || {};
     
     const session = await stripe1.checkout.sessions.create({
       mode: "subscription",
@@ -106,12 +106,41 @@ app.post("/create-checkout-session", async (req: Request, res: Response) => {
       customer_email: customerEmail || undefined,
       success_url: successUrl || "https://backend-ten-red-40.vercel.app/success?session_id={CHECKOUT_SESSION_ID}",
       cancel_url: cancelUrl || "https://backend-ten-red-40.vercel.app/cancel",
+      metadata: {
+        planName: planName || '',
+        planAmount: planAmount || '',
+        priceId: priceId || ''
+      }
     });
 
     res.json({ url: session.url }); 
   } catch (error) {
     console.error("Error creating checkout session:", error);
     res.status(500).json({ error: "Failed to create checkout session" });
+  }
+});
+
+// Get session data by session ID
+app.get("/get-session-data/:sessionId", async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Retrieve the Stripe session to get metadata
+    const session = await stripe1.checkout.sessions.retrieve(sessionId);
+    
+    if (session && session.metadata) {
+      res.json({
+        planName: session.metadata.planName,
+        planAmount: session.metadata.planAmount,
+        priceId: session.metadata.priceId,
+        customerEmail: session.customer_email
+      });
+    } else {
+      res.status(404).json({ error: 'Session data not found' });
+    }
+  } catch (error) {
+    console.error('Error retrieving session data:', error);
+    res.status(500).json({ error: 'Failed to retrieve session data' });
   }
 });
 
@@ -242,6 +271,156 @@ app.post("/register", async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error("Register error:", err);
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
+
+// Store subscription data
+app.post("/subscriptions", async (req: Request, res: Response) => {
+  try {
+    const { 
+      userId, 
+      email, 
+      planName, 
+      priceId, 
+      amount, 
+      currency, 
+      sessionId, 
+      status, 
+      subscriptionId,
+      currentPeriodStart,
+      currentPeriodEnd
+    } = req.body;
+
+    console.log('Storing subscription for:', email);
+
+    // Validate required fields
+    if (!email || !planName || !sessionId) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Missing required fields: email, planName, sessionId" 
+      });
+    }
+
+    const db = client.db("erpnext_saas");
+    const subscriptions = db.collection("subscriptions");
+
+    // Check if subscription already exists
+    const existing = await subscriptions.findOne({ sessionId });
+    if (existing) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Subscription already exists" 
+      });
+    }
+
+    const subscriptionDoc = {
+      userId,
+      email,
+      planName,
+      priceId,
+      amount,
+      currency: currency || 'USD',
+      sessionId,
+      status: status || 'active',
+      subscriptionId,
+      currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart) : new Date(),
+      currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const result = await subscriptions.insertOne(subscriptionDoc);
+    
+    console.log('Subscription stored successfully:', result.insertedId);
+
+    return res.status(201).json({ 
+      success: true,
+      message: "Subscription stored successfully", 
+      subscriptionId: result.insertedId 
+    });
+  } catch (err) {
+    console.error("Store subscription error:", err);
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
+// Get user subscriptions
+app.get("/subscriptions/:email", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.params;
+    
+    if (!email) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Email is required" 
+      });
+    }
+
+    const db = client.db("erpnext_saas");
+    const subscriptions = db.collection("subscriptions");
+
+    const userSubscriptions = await subscriptions
+      .find({ email })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    return res.status(200).json({ 
+      success: true,
+      subscriptions: userSubscriptions 
+    });
+  } catch (err) {
+    console.error("Get subscriptions error:", err);
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
+// Update subscription status
+app.put("/subscriptions/:subscriptionId", async (req: Request, res: Response) => {
+  try {
+    const { subscriptionId } = req.params;
+    const { status, currentPeriodEnd } = req.body;
+
+    const db = client.db("erpnext_saas");
+    const subscriptions = db.collection("subscriptions");
+
+    const updateData: { status: any; updatedAt: Date; currentPeriodEnd?: Date } = {
+      status,
+      updatedAt: new Date()
+    };
+
+    if (currentPeriodEnd) {
+      updateData.currentPeriodEnd = new Date(currentPeriodEnd);
+    }
+
+    const result = await subscriptions.updateOne(
+      { _id: new ObjectId(subscriptionId) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: "Subscription not found" 
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true,
+      message: "Subscription updated successfully" 
+    });
+  } catch (err) {
+    console.error("Update subscription error:", err);
     return res.status(500).json({ 
       success: false,
       error: "Internal server error" 
