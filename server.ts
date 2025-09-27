@@ -14,18 +14,12 @@ const PORT = process.env.PORT || 5000;
 const stripe1 = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2025-08-27.basil",
 });
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "https://innovatun-23ee3.web.app/",
-      "https://innovatun-23ee3.firebaseapp.com/"
-
-    ],
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: ['http://localhost:8080', 'https://innovatun-23ee3.web.app','https://innovatun-23ee3.firebaseapp.com'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 app.use(express.json());
 
 app.use(cookieParser());
