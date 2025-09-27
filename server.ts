@@ -5,17 +5,40 @@ import type { Request, Response } from "express";
 import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
+import { MongoClient, ServerApiVersion } from "mongodb";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const uri = process.env.MONGODB_URI || "";
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
+
+async function connectMongo() {
+  try {
+    await client.connect();
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } catch (err) {
+    console.error("MongoDB connection error:", err);
+    process.exit(1);
+  }
+}
+connectMongo();
+
+
 const stripe1 = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2025-08-27.basil",
 });
 app.use(cors({
-  origin: ['http://localhost:8080', 'https://innovatun-23ee3.web.app','https://innovatun-23ee3.firebaseapp.com'],
+  origin: ['http://localhost:8080','http://localhost:8081', 'https://innovatun-23ee3.web.app','https://innovatun-23ee3.firebaseapp.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -148,8 +171,82 @@ app.get("/success", (req: Request, res: Response) => {
 app.get("/cancel", (_req: Request, res: Response) => {
   res.status(200).json({ 
     message: "Payment cancelled",
-  
   });
+});
+
+app.post("/register", async (req: Request, res: Response) => {
+  try {
+    const { 
+      companyName, 
+      username, 
+      firstName, 
+      lastName, 
+      email, 
+      password, 
+      country, 
+      currency, 
+      abbr, 
+      tax_id, 
+      domain, 
+      date_established 
+    } = req.body;
+
+    console.log('Registration attempt for:', email);
+    console.log('Received data:', req.body);
+
+    // Validate required fields
+    if (!email || !password || !companyName || !firstName || !lastName) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Missing required fields: email, password, companyName, firstName, lastName" 
+      });
+    }
+
+    // Insert into MongoDB
+    const db = client.db("erpnext_saas");
+    const users = db.collection("users");
+
+    const existing = await users.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Email already registered" 
+      });
+    }
+
+    const result = await users.insertOne({
+      companyName,
+      username,
+      firstName,
+      lastName,
+      email,
+      password, // ⚠️ hash later with bcrypt
+      country,
+      currency,
+      abbr,
+      tax_id,
+      domain,
+      date_established,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true,
+      role: 'user'
+    });
+
+    console.log('User registered successfully:', result.insertedId);
+
+    return res.status(201).json({ 
+      success: true,
+      message: "User registered successfully", 
+      userId: result.insertedId 
+    });
+  } catch (err) {
+    console.error("Register error:", err);
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
 });
 
 
