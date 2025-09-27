@@ -81,7 +81,7 @@ app.post("/logout", (_req: Request, res: Response) => {
     .send({ success: true });
 });
 
-// Auth middleware (reads the same cookie)
+// Auth middleware 
 function requireAuth(req: Request, res: Response, next: () => void) {
   const token = (req as any).cookies?.session as string | undefined;
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -249,7 +249,7 @@ app.post("/register", async (req: Request, res: Response) => {
       firstName,
       lastName,
       email,
-      password, // ⚠️ hash later with bcrypt
+      password, 
       country,
       currency,
       abbr,
@@ -329,7 +329,7 @@ app.post("/subscriptions", async (req: Request, res: Response) => {
       status: status || 'active',
       subscriptionId,
       currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart) : new Date(),
-      currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
       createdAt: new Date(),
       updatedAt: new Date()
     };
