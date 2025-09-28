@@ -6,6 +6,9 @@ import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
+import { GenerateOTP } from "./helper/generateOTP.js";
+import { getOtpEmailTemplate } from "./util/emailTemplate.js";
+import { sendEmail } from "./services/emailSend.js";
 
 dotenv.config();
 
@@ -123,7 +126,7 @@ app.post("/create-checkout-session", async (req: Request, res: Response) => {
 // Get session data by session ID
 app.get("/get-session-data/:sessionId", async (req: Request, res: Response) => {
   try {
-    const { sessionId } = req.params;
+    const { sessionId }: any = req.params;
 
     // Retrieve the Stripe session to get metadata
     const session = await stripe1.checkout.sessions.retrieve(sessionId);
@@ -428,6 +431,49 @@ app.put("/subscriptions/:subscriptionId", async (req: Request, res: Response) =>
   }
 });
 
+//Forgot Password OTP Sending
+// Update subscription status
+app.post("/sendotp", async (req: Request, res: Response) => {
+  try {
+
+    const db = client.db("erpnext_saas");
+    const temp_otp = db.collection("tempOtp");
+    const users = db.collection("users");
+
+    const isUserExists = await users.findOne({email: req.body.email});
+    if(!isUserExists){
+        return res.status(200).json({ 
+        success: true,
+        message: "User not registered with this email" ,
+      });
+    }
+
+    const otp = GenerateOTP();
+
+    const isTempOtpExist = await temp_otp.findOne({email: req.body.email});
+    if(isTempOtpExist){
+          const result = await temp_otp.updateOne(
+          { email: req.body.email },
+          { $set: {otp: otp} }
+        );
+    }else{
+      const emailTemplate = getOtpEmailTemplate(otp);
+      
+      const emailSendRes = await sendEmail(req.body.email, emailTemplate.subject, emailTemplate.email_Body)
+      const result = temp_otp.insertOne({email: req.body.email, otp})
+    }
+
+    return res.status(200).json({ 
+      success: true,
+      message: "OTP Send successfully" ,
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
 
 export default app;
 
