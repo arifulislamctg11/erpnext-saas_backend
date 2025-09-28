@@ -7,7 +7,7 @@ export const getSingleUser = async (url: any, ) => {
      const response: any = await axios.get(`${BASEURL}${url}`, {
         headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'token fcfd1baff1e2b85:b983b4130054f87'
+        'Authorization': `token ${process.env.TOKEN}`
         }
     })
     const formatedRes = await response
