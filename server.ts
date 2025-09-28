@@ -521,6 +521,43 @@ app.post("/reset-password", async (req: Request, res: Response) => {
   }
 });
 
+//Current Plan
+app.get("/current-plan", async (req: Request, res: Response) => {
+  try {
+    const {email} : any= req.query
+    console.log('Hitted ====>', email)
+    const db = client.db("erpnext_saas");
+    const subscriptions = db.collection("subscriptions");
+
+     const subscriptionData = await subscriptions.findOne(
+      {
+        email: email,
+        status: 'active'
+      },
+      {
+        sort: { createdAt: -1 } // descending order to get the latest
+      }
+    );
+
+    if (!subscriptionData) {
+      return res.status(404).json({
+        success: false,
+        data: subscriptionData,
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true,
+      data: subscriptionData
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
 export default app;
 
 
