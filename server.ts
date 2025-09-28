@@ -435,12 +435,12 @@ app.put("/subscriptions/:subscriptionId", async (req: Request, res: Response) =>
 //Forgot Password OTP Sending
 app.post("/sendotp", async (req: Request, res: Response) => {
   try {
-    const singleUser = await getSingleUser(`/resource/User/${req.body.email}`);
-    return res.status(200).json({ 
-      success: true,
-      message: "Password Changed successfully" ,
-      singleUser
-    });
+    // const singleUser = await getSingleUser(`/resource/User/${req.body.email}`);
+    // return res.status(200).json({ 
+    //   success: true,
+    //   message: "Password Changed successfully" ,
+    //   singleUser
+    // });
     const db = client.db("erpnext_saas");
     const temp_otp = db.collection("tempOtp");
     const users = db.collection("users");
