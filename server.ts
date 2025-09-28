@@ -9,6 +9,7 @@ import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import { GenerateOTP } from "./helper/generateOTP.js";
 import { getOtpEmailTemplate } from "./util/emailTemplate.js";
 import { sendEmail } from "./services/emailSend.js";
+import { getSingleUser } from "./services/users/users.serv.js";
 
 dotenv.config();
 
@@ -432,10 +433,14 @@ app.put("/subscriptions/:subscriptionId", async (req: Request, res: Response) =>
 });
 
 //Forgot Password OTP Sending
-// Update subscription status
 app.post("/sendotp", async (req: Request, res: Response) => {
   try {
-
+    const singleUser = await getSingleUser(`/resource/User/${req.body.email}`);
+    return res.status(200).json({ 
+      success: true,
+      message: "Password Changed successfully" ,
+      singleUser
+    });
     const db = client.db("erpnext_saas");
     const temp_otp = db.collection("tempOtp");
     const users = db.collection("users");
@@ -466,6 +471,47 @@ app.post("/sendotp", async (req: Request, res: Response) => {
     return res.status(200).json({ 
       success: true,
       message: "OTP Send successfully" ,
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" ,
+      err
+    });
+  }
+});
+
+app.post("/reset-password", async (req: Request, res: Response) => {
+  try {
+    const {email, password, otp} : any= req.body
+    const db = client.db("erpnext_saas");
+    const temp_otp = db.collection("tempOtp");
+    const users = db.collection("users");
+
+    const isUserExists = await temp_otp.findOne({email: email});
+    if(!isUserExists){
+        return res.status(200).json({ 
+        success: true,
+        message: "User not registered with this email" ,
+      });
+    }
+    const temOtpData = await temp_otp.findOne({email: email});
+
+    if(temOtpData?.otp !== otp){
+      return res.status(200).json({ 
+        success: true,
+        message: "OTP is Wrong" ,
+      });
+    }
+
+    const result = await users.updateOne(
+      { email: email},
+      { $set: {password: password} }
+    );
+
+    return res.status(200).json({ 
+      success: true,
+      message: "Password Changed successfully" ,
     });
   } catch (err) {
     return res.status(500).json({ 
