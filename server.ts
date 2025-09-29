@@ -7,7 +7,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import { GenerateOTP } from "./helper/generateOTP.js";
-import { getOtpEmailTemplate } from "./util/emailTemplate.js";
+import { getOtpEmailTemplate, subscriptionEmailTemp } from "./util/emailTemplate.js";
 import { sendEmail } from "./services/emailSend.js";
 import { getSingleUser } from "./services/users/users.serv.js";
 
@@ -300,8 +300,6 @@ app.post("/subscriptions", async (req: Request, res: Response) => {
       currentPeriodEnd
     } = req.body;
 
-    console.log('Storing subscription for:', email);
-
     // Validate required fields
     if (!email || !planName || !sessionId) {
       return res.status(400).json({ 
@@ -340,8 +338,14 @@ app.post("/subscriptions", async (req: Request, res: Response) => {
 
     const result = await subscriptions.insertOne(subscriptionDoc);
     
-    console.log('Subscription stored successfully:', result.insertedId);
-
+    const emailTemplate = subscriptionEmailTemp({
+      currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart) : new Date(),
+      currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      planName,
+      amount
+    });
+    const emailSendRes = await sendEmail(email, emailTemplate.subject, emailTemplate.email_Body)
+    
     return res.status(201).json({ 
       success: true,
       message: "Subscription stored successfully", 
