@@ -586,6 +586,31 @@ app.get("/user-profile", async (req: Request, res: Response) => {
   }
 });
 
+app.post("/update-profile", async (req: Request, res: Response) => {
+  try {
+    const userData : any= req.body
+ 
+    const db = client.db("erpnext_saas");
+    const Users = db.collection("users");
+
+    const result = await Users.updateOne(
+      { email: userData?.email},
+      { $set: userData }
+    );
+
+    return res.status(200).json({ 
+      success: true,
+      message: 'updated successfully!'
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
+
 export default app;
 
 
