@@ -183,11 +183,6 @@ app.get("/", (_req: Request, res: Response) => {
   res.status(200).send("Backend is running.");
 });
 
-app.get("/health", (_req: Request, res: Response) => {
-  res.status(200).json({ status: "ok" });
-});
-
-
 app.get("/success", (req: Request, res: Response) => {
   const { session_id } = req.query;
   if (!session_id) {
@@ -205,6 +200,115 @@ app.get("/cancel", (_req: Request, res: Response) => {
   res.status(200).json({ 
     message: "Payment cancelled",
   });
+});
+
+app.get("/users", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.query as { email?: string };
+    if (!email) {
+      return res.status(400).json({ success: false, error: "email required" });
+    }
+
+    const db = client.db("erpnext_saas");
+    const users = db.collection("users");
+
+    const user = await users.findOne(
+      { email: String(email).toLowerCase() },
+      { projection: { email: 1, role: 1, _id: 0 } }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    return res.status(200).json(user);
+  } catch (err) {
+    console.error("Get user error:", err);
+    return res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+app.get("/customers", async (req: Request, res: Response) => {
+  try {
+    const db = client.db("erpnext_saas");
+    const users = db.collection("users");
+
+    const customers = await users.aggregate([
+      {
+        $project: {
+          _id: 0,
+          email: 1,
+          username: 1,
+          firstName: 1,
+          lastName: 1,
+          companyName: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          isActive: 1
+        }
+      },
+
+      // Lookup latest subscription by email
+      {
+        $lookup: {
+          from: "subscriptions",
+          let: { userEmail: "$email" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$email", "$$userEmail"] }
+              }
+            },
+            { $sort: { createdAt: -1 } }, // latest subscription first
+            { $limit: 1 }
+          ],
+          as: "latestSub"
+        }
+      },
+
+      // Flatten subscription fields
+      {
+        $addFields: {
+          planName: { $ifNull: [{ $arrayElemAt: ["$latestSub.planName", 0] }, null] },
+          planStatus: { $ifNull: [{ $arrayElemAt: ["$latestSub.status", 0] }, null] },
+          planAmount: { $ifNull: [{ $arrayElemAt: ["$latestSub.amount", 0] }, null] }
+        }
+      },
+
+    
+      {
+        $project: {
+          email: 1,
+          username: 1,
+          firstName: 1,
+          lastName: 1,
+          companyName: 1,
+          createdAt: 1,
+          lastLogin: "$updatedAt",
+          planName: 1,
+          planAmount: 1,
+          status: {
+            $ifNull: [
+              "$planStatus",
+              { $cond: [{ $eq: ["$isActive", true] }, "active", "inactive"] }
+            ]
+          }
+        }
+      },
+
+      { $sort: { createdAt: -1 } }
+    ]).toArray();
+
+    return res.status(200).json({
+      success: true,
+      customers
+    });
+  } catch (err) {
+    console.error("Get customers error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error"
+    });
+  }
 });
 
 app.post("/register", async (req: Request, res: Response) => {
@@ -313,7 +417,7 @@ app.post("/subscriptions", async (req: Request, res: Response) => {
     const db = client.db("erpnext_saas");
     const subscriptions = db.collection("subscriptions");
 
-    // Check if subscription already exists
+  
     const existing = await subscriptions.findOne({ sessionId });
     if (existing) {
       return res.status(400).json({ 
