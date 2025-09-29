@@ -6,10 +6,9 @@ import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
-import { GenerateOTP } from "./helper/generateOTP.js";
-import { getOtpEmailTemplate, subscriptionEmailTemp } from "./util/emailTemplate.js";
+import {  subscriptionEmailTemp } from "./util/emailTemplate.js";
 import { sendEmail } from "./services/emailSend.js";
-import { getSingleUser } from "./services/users/users.serv.js";
+import { CreateCmpy, CreateEmployee, CreateUser, UpdateEmployee, UpdateUser} from "./services/users/users.serv.js";
 
 dotenv.config();
 
@@ -224,9 +223,6 @@ app.post("/register", async (req: Request, res: Response) => {
       date_established 
     } = req.body;
 
-    console.log('Registration attempt for:', email);
-    console.log('Received data:', req.body);
-
     // Validate required fields
     if (!email || !password || !companyName || !firstName || !lastName) {
       return res.status(400).json({ 
@@ -238,6 +234,7 @@ app.post("/register", async (req: Request, res: Response) => {
     // Insert into MongoDB
     const db = client.db("erpnext_saas");
     const users = db.collection("users");
+    const profileComplete = db.collection("profilecompletes");
 
     const existing = await users.findOne({ email });
     if (existing) {
@@ -268,11 +265,69 @@ app.post("/register", async (req: Request, res: Response) => {
 
     console.log('User registered successfully:', result.insertedId);
 
-    return res.status(201).json({ 
-      success: true,
-      message: "User registered successfully", 
-      userId: result.insertedId 
-    });
+    if(result.insertedId){
+      const cmpy_obj = {
+            "company_name": companyName,
+            "abbr": abbr,
+            "default_currency": currency
+        }
+      const cmpy_create = await CreateCmpy(cmpy_obj);
+      
+      const user_obj =       {
+        email,
+        "first_name": firstName,
+        "last_name": lastName,
+        "enabled": 1
+      }
+      const user_create = await CreateUser(user_obj);
+
+    const employee_obj = {
+        "employee_name": `${firstName} ${lastName}`,
+        "first_name": firstName,
+        "last_name": lastName,
+        "gender": "Male",
+        "date_of_birth": "1990-05-10",
+        "date_of_joining": "2023-09-01",
+        "company": companyName,
+        "employment_type": "Full-time"
+      }
+      const exmployee_create = await CreateEmployee(employee_obj);
+
+      const employee_updateobj = {
+        "user_id": email
+      }
+      const exmployee_update = await UpdateEmployee(exmployee_create?.data?.name, employee_updateobj);
+
+      const user_updateobj = {
+        "new_password": password
+      }
+      const user_update = await UpdateUser(email, user_updateobj);
+
+      const profileCompleteResult = await profileComplete.insertOne({
+        "Company_Creation": true,
+        "Company_Creation_prcnt": 25,
+        "User_Creation": true,
+        "User_Creation_prcnt": 25,
+        "Employee_Creation": true,
+        "Employee_Creation_prcnt": 25,
+        "Assignment_Creation": true,
+        "Assignment_Creation_prcnt": 25,
+        email
+      });
+
+      return res.status(201).json({ 
+        success: true,
+        message: "User registered successfully", 
+        userId: result.insertedId,
+        user_update
+      });
+    }else{
+      return res.status(201).json({ 
+        success: true,
+        message: "User registration failed", 
+      });
+    }
+
   } catch (err) {
     console.error("Register error:", err);
     return res.status(500).json({ 
