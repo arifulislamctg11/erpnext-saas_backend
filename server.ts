@@ -435,12 +435,6 @@ app.put("/subscriptions/:subscriptionId", async (req: Request, res: Response) =>
 //Forgot Password OTP Sending
 app.post("/sendotp", async (req: Request, res: Response) => {
   try {
-    // const singleUser = await getSingleUser(`/resource/User/${req.body.email}`);
-    // return res.status(200).json({ 
-    //   success: true,
-    //   message: "Password Changed successfully" ,
-    //   singleUser
-    // });
     const db = client.db("erpnext_saas");
     const temp_otp = db.collection("tempOtp");
     const users = db.collection("users");
@@ -453,20 +447,20 @@ app.post("/sendotp", async (req: Request, res: Response) => {
       });
     }
 
-    const otp = GenerateOTP();
+    // const otp = GenerateOTP();
 
-    const isTempOtpExist = await temp_otp.findOne({email: req.body.email});
-    if(isTempOtpExist){
-          const result = await temp_otp.updateOne(
-          { email: req.body.email },
-          { $set: {otp: otp} }
-        );
-    }else{
-      const emailTemplate = getOtpEmailTemplate(otp);
+    // const isTempOtpExist = await temp_otp.findOne({email: req.body.email});
+    // if(isTempOtpExist){
+    //       const result = await temp_otp.updateOne(
+    //       { email: req.body.email },
+    //       { $set: {otp: otp} }
+    //     );
+    // }else{
+    //   const emailTemplate = getOtpEmailTemplate(otp);
       
-      const emailSendRes = await sendEmail(req.body.email, emailTemplate.subject, emailTemplate.email_Body)
-      const result = temp_otp.insertOne({email: req.body.email, otp})
-    }
+    //   const emailSendRes = await sendEmail(req.body.email, emailTemplate.subject, emailTemplate.email_Body)
+    //   const result = temp_otp.insertOne({email: req.body.email, otp})
+    // }
 
     return res.status(200).json({ 
       success: true,
