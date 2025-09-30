@@ -6,10 +6,9 @@ import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
-import { GenerateOTP } from "./helper/generateOTP.js";
-import { getOtpEmailTemplate } from "./util/emailTemplate.js";
+import {  subscriptionEmailTemp } from "./util/emailTemplate.js";
 import { sendEmail } from "./services/emailSend.js";
-import { getSingleUser } from "./services/users/users.serv.js";
+import { CreateCmpy, CreateEmployee, CreateUser, UpdateEmployee, UpdateUser} from "./services/users/users.serv.js";
 
 dotenv.config();
 
@@ -328,9 +327,6 @@ app.post("/register", async (req: Request, res: Response) => {
       date_established 
     } = req.body;
 
-    console.log('Registration attempt for:', email);
-    console.log('Received data:', req.body);
-
     // Validate required fields
     if (!email || !password || !companyName || !firstName || !lastName) {
       return res.status(400).json({ 
@@ -342,6 +338,7 @@ app.post("/register", async (req: Request, res: Response) => {
     // Insert into MongoDB
     const db = client.db("erpnext_saas");
     const users = db.collection("users");
+    const profileComplete = db.collection("profilecompletes");
 
     const existing = await users.findOne({ email });
     if (existing) {
@@ -372,11 +369,69 @@ app.post("/register", async (req: Request, res: Response) => {
 
     console.log('User registered successfully:', result.insertedId);
 
-    return res.status(201).json({ 
-      success: true,
-      message: "User registered successfully", 
-      userId: result.insertedId 
-    });
+    if(result.insertedId){
+      const cmpy_obj = {
+            "company_name": companyName,
+            "abbr": abbr,
+            "default_currency": currency
+        }
+      const cmpy_create = await CreateCmpy(cmpy_obj);
+      
+      const user_obj =       {
+        email,
+        "first_name": firstName,
+        "last_name": lastName,
+        "enabled": 1
+      }
+      const user_create = await CreateUser(user_obj);
+
+      const employee_obj = {
+        "employee_name": `${firstName} ${lastName}`,
+        "first_name": firstName,
+        "last_name": lastName,
+        "gender": "Male",
+        "date_of_birth": "1990-05-10",
+        "date_of_joining": "2023-09-01",
+        "company": companyName,
+        "employment_type": "Full-time"
+      }
+      const exmployee_create = await CreateEmployee(employee_obj);
+
+      const employee_updateobj = {
+        "user_id": email
+      }
+      const exmployee_update = await UpdateEmployee(exmployee_create?.data?.name, employee_updateobj);
+
+      const user_updateobj = {
+        "new_password": 'My$ecureP@ssw0rd'
+      }
+      const user_update = await UpdateUser(email, user_updateobj);
+
+      const profileCompleteResult = await profileComplete.insertOne({
+        "Company_Creation": true,
+        "Company_Creation_prcnt": 25,
+        "User_Creation": true,
+        "User_Creation_prcnt": 25,
+        "Employee_Creation": true,
+        "Employee_Creation_prcnt": 25,
+        "Assignment_Creation": true,
+        "Assignment_Creation_prcnt": 25,
+        email
+      });
+
+      return res.status(201).json({ 
+        success: true,
+        message: "User registered successfully", 
+        userId: result.insertedId,
+        user_update
+      });
+    }else{
+      return res.status(201).json({ 
+        success: true,
+        message: "User registration failed", 
+      });
+    }
+
   } catch (err) {
     console.error("Register error:", err);
     return res.status(500).json({ 
@@ -403,8 +458,6 @@ app.post("/subscriptions", async (req: Request, res: Response) => {
       currentPeriodStart,
       currentPeriodEnd
     } = req.body;
-
-    console.log('Storing subscription for:', email);
 
     // Validate required fields
     if (!email || !planName || !sessionId) {
@@ -444,8 +497,14 @@ app.post("/subscriptions", async (req: Request, res: Response) => {
 
     const result = await subscriptions.insertOne(subscriptionDoc);
     
-    console.log('Subscription stored successfully:', result.insertedId);
-
+    const emailTemplate = subscriptionEmailTemp({
+      currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart) : new Date(),
+      currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      planName,
+      amount
+    });
+    const emailSendRes = await sendEmail(email, emailTemplate.subject, emailTemplate.email_Body)
+    
     return res.status(201).json({ 
       success: true,
       message: "Subscription stored successfully", 
@@ -539,12 +598,6 @@ app.put("/subscriptions/:subscriptionId", async (req: Request, res: Response) =>
 //Forgot Password OTP Sending
 app.post("/sendotp", async (req: Request, res: Response) => {
   try {
-    // const singleUser = await getSingleUser(`/resource/User/${req.body.email}`);
-    // return res.status(200).json({ 
-    //   success: true,
-    //   message: "Password Changed successfully" ,
-    //   singleUser
-    // });
     const db = client.db("erpnext_saas");
     const temp_otp = db.collection("tempOtp");
     const users = db.collection("users");
@@ -557,20 +610,20 @@ app.post("/sendotp", async (req: Request, res: Response) => {
       });
     }
 
-    const otp = GenerateOTP();
+    // const otp = GenerateOTP();
 
-    const isTempOtpExist = await temp_otp.findOne({email: req.body.email});
-    if(isTempOtpExist){
-          const result = await temp_otp.updateOne(
-          { email: req.body.email },
-          { $set: {otp: otp} }
-        );
-    }else{
-      const emailTemplate = getOtpEmailTemplate(otp);
+    // const isTempOtpExist = await temp_otp.findOne({email: req.body.email});
+    // if(isTempOtpExist){
+    //       const result = await temp_otp.updateOne(
+    //       { email: req.body.email },
+    //       { $set: {otp: otp} }
+    //     );
+    // }else{
+    //   const emailTemplate = getOtpEmailTemplate(otp);
       
-      const emailSendRes = await sendEmail(req.body.email, emailTemplate.subject, emailTemplate.email_Body)
-      const result = temp_otp.insertOne({email: req.body.email, otp})
-    }
+    //   const emailSendRes = await sendEmail(req.body.email, emailTemplate.subject, emailTemplate.email_Body)
+    //   const result = temp_otp.insertOne({email: req.body.email, otp})
+    // }
 
     return res.status(200).json({ 
       success: true,
@@ -661,6 +714,61 @@ app.get("/current-plan", async (req: Request, res: Response) => {
     });
   }
 });
+
+app.get("/user-profile", async (req: Request, res: Response) => {
+  try {
+    const {email} : any= req.query
+ 
+    const db = client.db("erpnext_saas");
+    const Users = db.collection("users");
+
+     const userData = await Users.findOne({
+        email: email,
+      });
+
+    if (!userData) {
+      return res.status(404).json({
+        success: false,
+        data: userData,
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true,
+      data: userData
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
+app.post("/update-profile", async (req: Request, res: Response) => {
+  try {
+    const userData : any= req.body
+ 
+    const db = client.db("erpnext_saas");
+    const Users = db.collection("users");
+
+    const result = await Users.updateOne(
+      { email: userData?.email},
+      { $set: userData }
+    );
+
+    return res.status(200).json({ 
+      success: true,
+      message: 'updated successfully!'
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
 
 export default app;
 

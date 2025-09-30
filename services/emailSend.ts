@@ -1,9 +1,5 @@
 import dotenv from "dotenv";
 import nodemailer, { type TransportOptions } from 'nodemailer'
-
-// import dns from 'dns';
-// dns.setDefaultResultOrder('ipv4first');
-
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
