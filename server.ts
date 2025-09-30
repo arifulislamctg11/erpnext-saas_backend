@@ -769,6 +769,33 @@ app.post("/update-profile", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/profile-complete", async (req: Request, res: Response) => {
+  try {
+    const {email} : any= req.query
+
+    const db = client.db("erpnext_saas");
+    const profilecompletes = db.collection("profilecompletes");
+
+     const profileCmpltData = await profilecompletes.findOne({email: email});
+
+    if (!profileCmpltData) {
+      return res.status(404).json({
+        success: false,
+        data: profileCmpltData,
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true,
+      data: profileCmpltData
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
 
 export default app;
 
