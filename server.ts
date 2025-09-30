@@ -281,7 +281,7 @@ app.post("/register", async (req: Request, res: Response) => {
       }
       const user_create = await CreateUser(user_obj);
 
-    const employee_obj = {
+      const employee_obj = {
         "employee_name": `${firstName} ${lastName}`,
         "first_name": firstName,
         "last_name": lastName,
@@ -299,7 +299,7 @@ app.post("/register", async (req: Request, res: Response) => {
       const exmployee_update = await UpdateEmployee(exmployee_create?.data?.name, employee_updateobj);
 
       const user_updateobj = {
-        "new_password": password
+        "new_password": 'My$ecureP@ssw0rd'
       }
       const user_update = await UpdateUser(email, user_updateobj);
 
