@@ -595,6 +595,70 @@ app.put("/subscriptions/:subscriptionId", async (req: Request, res: Response) =>
   }
 });
 
+// Get all subscriptions (admin) with filters
+app.get("/subscriptions", async (req: Request, res: Response) => {
+  try {
+    const {
+      status,          // "active" | "canceled" | etc.
+      customer,        // matches email substring
+      startDate,       // ISO string or yyyy-mm-dd
+      endDate,         // ISO string or yyyy-mm-dd
+      page = "1",
+      limit = "50",
+    } = req.query as Record<string, string>;
+
+    const db = client.db("erpnext_saas");
+    const subscriptions = db.collection("subscriptions");
+
+    const query: any = {};
+
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    if (customer) {
+      // since you store only email, filter against email
+      query.email = { $regex: new RegExp(customer, "i") };
+    }
+
+    // date filter uses createdAt as the payment date surrogate
+    if (startDate || endDate) {
+      const createdAt: any = {};
+      if (startDate) createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        // include the whole day when only a date is provided
+        if (!endDate.includes("T")) end.setHours(23, 59, 59, 999);
+        createdAt.$lte = end;
+      }
+      query.createdAt = createdAt;
+    }
+
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [items, total] = await Promise.all([
+      subscriptions.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNum).toArray(),
+      subscriptions.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      subscriptions: items,
+    });
+  } catch (err) {
+    console.error("Admin list subscriptions error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+
 //Forgot Password OTP Sending
 app.post("/sendotp", async (req: Request, res: Response) => {
   try {
