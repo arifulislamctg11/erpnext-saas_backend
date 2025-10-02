@@ -973,16 +973,29 @@ app.get("/plans/:id", async (req: Request, res: Response) => {
 
 app.post("/update-plan", async (req: Request, res: Response) => {
   try {
-    const {_id, ...rest} : any= req.body
+    const {id, ...rest} : any= req.body
  
     const db = client.db("erpnext_saas");
    const PlanCollection = db.collection("plans");
 
-    const result = await PlanCollection.updateOne(
-      { _id: new ObjectId(_id)},
-      { $set: rest }
-    );
+    // const result = await PlanCollection.updateOne(
+    //   { _id: new ObjectId(_id)},
+    //   { $set: rest }
+    // );
 
+    const updatedProduct = await stripe1.products.update(id, {
+        name: rest?.name,
+        metadata: {
+          features: JSON.stringify(rest.features)
+        }
+      });
+      
+      const newPrice = await stripe1.prices.create({
+        unit_amount: Number(rest?.price),
+        currency: 'usd',
+        recurring: { interval: 'month' },
+        product: id,
+      });
     return res.status(200).json({ 
       success: true,
       message: 'updated successfully!'
