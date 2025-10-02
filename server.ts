@@ -874,7 +874,23 @@ app.post("/create-plan", async (req: Request, res: Response) => {
         message: 'Plan creation failed',
       });
     }
+    if(result){
+       const product = await stripe1.products.create({
+      name: req.body?.planName,
+      metadata: {
+        features: JSON.stringify(req.body.features)
+      }
+    });
 
+    // 2. Create the price (recurring)
+    const price = await stripe1.prices.create({
+      unit_amount: Number(req.body?.planPrice) * 100, // amount in cents
+      currency: 'usd',
+      recurring: { interval: 'month' },
+      product: product.id,
+    });
+
+    }
     return res.status(200).json({ 
       success: true,
       message: 'Plan Created Successfully'
@@ -893,6 +909,7 @@ app.get("/plans", async (req: Request, res: Response) => {
     const db = client.db("erpnext_saas");
     const PlanCollection = db.collection("plans");
     const result = await PlanCollection.find({}).toArray();
+    const products = await stripe1.products.list({limit: 100});
 
     if (result.length === 0) {
       return res.status(404).json({
@@ -900,10 +917,25 @@ app.get("/plans", async (req: Request, res: Response) => {
         message: 'No plans found',
       });
     }
+  
+    const productsWithPrices = await Promise.all(
+      products.data.map(async (product: any) => {
+        const prices: any = await stripe1.prices.list({
+          product: product.id,
+          limit: 100,
+        });
 
+        return {
+          ...product,
+          prices: prices.data[0].unit_amount,
+          features: JSON.parse(product?.metadata?.features)
+        };
+      })
+    );
     return res.status(200).json({ 
       success: true,
-      data: result
+      data: result,
+      products: productsWithPrices
     });
   } catch (err) {
     return res.status(500).json({ 
@@ -916,14 +948,19 @@ app.get("/plans", async (req: Request, res: Response) => {
 
 app.get("/plans/:id", async (req: Request, res: Response) => {
   try {
-    const {id} = req.params
+    const {id}: any = req.params
     const db = client.db("erpnext_saas");
-    const PlanCollection = db.collection("plans");
+    // const PlanCollection = db.collection("plans");
 
-    const result = await PlanCollection.findOne( { _id: new ObjectId(id) },)
+    // const result = await PlanCollection.findOne( { _id: new ObjectId(id) },)
+    const result: any = await stripe1.products.retrieve(id);
+    const pr: any =  await stripe1.prices.list({
+          product: id,
+          limit: 100,
+        });
     return res.status(200).json({ 
       success: true,
-      data: result
+      data: {...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features)}
     });
   } catch (err) {
     return res.status(500).json({ 
