@@ -746,7 +746,7 @@ app.post("/reset-password", async (req: Request, res: Response) => {
 app.get("/current-plan", async (req: Request, res: Response) => {
   try {
     const {email} : any= req.query
-    console.log('Hitted ====>', email)
+    
     const db = client.db("erpnext_saas");
     const subscriptions = db.collection("subscriptions");
 
@@ -860,6 +860,104 @@ app.get("/profile-complete", async (req: Request, res: Response) => {
     });
   }
 });
+
+app.post("/create-plan", async (req: Request, res: Response) => {
+  try {
+
+    const db = client.db("erpnext_saas");
+    const PlanCollection = db.collection("plans");
+    const result = await PlanCollection.insertOne(req.body);
+    
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: 'Plan creation failed',
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true,
+      message: 'Plan Created Successfully'
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
+app.get("/plans", async (req: Request, res: Response) => {
+  try {
+
+    const db = client.db("erpnext_saas");
+    const PlanCollection = db.collection("plans");
+    const result = await PlanCollection.find({}).toArray();
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No plans found',
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" ,
+      err
+    });
+  }
+});
+
+app.get("/plans/:id", async (req: Request, res: Response) => {
+  try {
+    const {id} = req.params
+    const db = client.db("erpnext_saas");
+    const PlanCollection = db.collection("plans");
+
+    const result = await PlanCollection.findOne( { _id: new ObjectId(id) },)
+    return res.status(200).json({ 
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" ,
+      err
+    });
+  }
+});
+
+app.post("/update-plan", async (req: Request, res: Response) => {
+  try {
+    const {_id, ...rest} : any= req.body
+ 
+    const db = client.db("erpnext_saas");
+   const PlanCollection = db.collection("plans");
+
+    const result = await PlanCollection.updateOne(
+      { _id: new ObjectId(_id)},
+      { $set: rest }
+    );
+
+    return res.status(200).json({ 
+      success: true,
+      message: 'updated successfully!'
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
 
 export default app;
 
