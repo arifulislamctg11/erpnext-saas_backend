@@ -7,6 +7,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import { subscriptionEmailTemp } from "./util/emailTemplate.js";
+import { getWelcomeEmailTemplate } from "./util/welcomeEmailTemplate.js";
 import { sendEmail } from "./services/emailSend.js";
 import {
   CreateCmpy,
@@ -455,6 +456,16 @@ app.post("/register", async (req: Request, res: Response) => {
         Assignment_Creation_prcnt: 25,
         email,
       });
+
+      // Send welcome email after successful registration
+      try {
+        const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName);
+        const emailSendRes = await sendEmail(email, welcomeEmailTemplate.subject, welcomeEmailTemplate.email_Body);
+        console.log('Welcome email sent:', emailSendRes);
+      } catch (emailError) {
+        console.error('Welcome email failed:', emailError);
+        
+      }
 
       return res.status(201).json({
         success: true,
