@@ -634,19 +634,82 @@ app.put(
         });
       }
 
-      return res.status(200).json({
-        success: true,
-        message: "Subscription updated successfully",
-      });
-    } catch (err) {
-      console.error("Update subscription error:", err);
-      return res.status(500).json({
-        success: false,
-        error: "Internal server error",
-      });
-    }
+    return res.status(200).json({ 
+      success: true,
+      message: "Subscription updated successfully" 
+    });
+  } catch (err) {
+    console.error("Update subscription error:", err);
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
   }
-);
+});
+
+// Get all subscriptions (admin) with filters
+app.get("/subscriptions", async (req: Request, res: Response) => {
+  try {
+    const {
+      status,          // "active" | "canceled" | etc.
+      customer,        // matches email substring
+      startDate,       // ISO string or yyyy-mm-dd
+      endDate,         // ISO string or yyyy-mm-dd
+      page = "1",
+      limit = "50",
+    } = req.query as Record<string, string>;
+
+    const db = client.db("erpnext_saas");
+    const subscriptions = db.collection("subscriptions");
+
+    const query: any = {};
+
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    if (customer) {
+      // since you store only email, filter against email
+      query.email = { $regex: new RegExp(customer, "i") };
+    }
+
+    // date filter uses createdAt as the payment date surrogate
+    if (startDate || endDate) {
+      const createdAt: any = {};
+      if (startDate) createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        // include the whole day when only a date is provided
+        if (!endDate.includes("T")) end.setHours(23, 59, 59, 999);
+        createdAt.$lte = end;
+      }
+      query.createdAt = createdAt;
+    }
+
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [items, total] = await Promise.all([
+      subscriptions.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNum).toArray(),
+      subscriptions.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      subscriptions: items,
+    });
+  } catch (err) {
+    console.error("Admin list subscriptions error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
 
 //Forgot Password OTP Sending
 app.post("/sendotp", async (req: Request, res: Response) => {
@@ -734,8 +797,8 @@ app.post("/reset-password", async (req: Request, res: Response) => {
 //Current Plan
 app.get("/current-plan", async (req: Request, res: Response) => {
   try {
-    const { email }: any = req.query;
-    console.log("Hitted ====>", email);
+    const {email} : any= req.query
+    
     const db = client.db("erpnext_saas");
     const subscriptions = db.collection("subscriptions");
 
@@ -862,6 +925,154 @@ app.get("/user-company/:companyName", async (req: Request, res: Response) => {
     });
   }
 });
+
+app.post("/create-plan", async (req: Request, res: Response) => {
+  try {
+
+    const db = client.db("erpnext_saas");
+    const PlanCollection = db.collection("plans");
+    const result = await PlanCollection.insertOne(req.body);
+    
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: 'Plan creation failed',
+      });
+    }
+    if(result){
+       const product = await stripe1.products.create({
+      name: req.body?.planName,
+      metadata: {
+        features: JSON.stringify(req.body.features)
+      }
+    });
+
+    // 2. Create the price (recurring)
+    const price = await stripe1.prices.create({
+      unit_amount: Number(req.body?.planPrice) * 100, // amount in cents
+      currency: 'usd',
+      recurring: { interval: 'month' },
+      product: product.id,
+    });
+
+    }
+    return res.status(200).json({ 
+      success: true,
+      message: 'Plan Created Successfully'
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
+app.get("/plans", async (req: Request, res: Response) => {
+  try {
+
+    const db = client.db("erpnext_saas");
+    const PlanCollection = db.collection("plans");
+    const result = await PlanCollection.find({}).toArray();
+    const products = await stripe1.products.list({limit: 100});
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No plans found',
+      });
+    }
+  
+    const productsWithPrices = await Promise.all(
+      products.data.map(async (product: any) => {
+        const prices: any = await stripe1.prices.list({
+          product: product.id,
+          limit: 100,
+        });
+
+        return {
+          ...product,
+          prices: prices.data[0].unit_amount,
+          features: JSON.parse(product?.metadata?.features)
+        };
+      })
+    );
+    return res.status(200).json({ 
+      success: true,
+      data: result,
+      products: productsWithPrices
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" ,
+      err
+    });
+  }
+});
+
+app.get("/plans/:id", async (req: Request, res: Response) => {
+  try {
+    const {id}: any = req.params
+    const db = client.db("erpnext_saas");
+    // const PlanCollection = db.collection("plans");
+
+    // const result = await PlanCollection.findOne( { _id: new ObjectId(id) },)
+    const result: any = await stripe1.products.retrieve(id);
+    const pr: any =  await stripe1.prices.list({
+          product: id,
+          limit: 100,
+        });
+    return res.status(200).json({ 
+      success: true,
+      data: {...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features)}
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" ,
+      err
+    });
+  }
+});
+
+app.post("/update-plan", async (req: Request, res: Response) => {
+  try {
+    const {id, ...rest} : any= req.body
+ 
+    const db = client.db("erpnext_saas");
+   const PlanCollection = db.collection("plans");
+
+    // const result = await PlanCollection.updateOne(
+    //   { _id: new ObjectId(_id)},
+    //   { $set: rest }
+    // );
+
+    const updatedProduct = await stripe1.products.update(id, {
+        name: rest?.name,
+        metadata: {
+          features: JSON.stringify(rest.features)
+        }
+      });
+      
+      const newPrice = await stripe1.prices.create({
+        unit_amount: Number(rest?.price),
+        currency: 'usd',
+        recurring: { interval: 'month' },
+        product: id,
+      });
+    return res.status(200).json({ 
+      success: true,
+      message: 'updated successfully!'
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
 
 export default app;
 
