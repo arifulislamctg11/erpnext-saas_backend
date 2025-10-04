@@ -917,8 +917,6 @@ app.get("/user-company/:companyName", async (req: Request, res: Response) => {
   const { companyName } = req.params;
   try {
     const data = await ResourceEmployee(companyName);
-    console.log("data", data);
-    // res.send("User Company API Working");
     res.send(data);
   } catch (error) {
     return res.status(500).json({
