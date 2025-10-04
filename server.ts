@@ -768,7 +768,7 @@ app.get("/current-plan", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/  ", async (req: Request, res: Response) => {
+app.get("/user-profile", async (req: Request, res: Response) => {
   try {
     const { email }: any = req.query;
 
