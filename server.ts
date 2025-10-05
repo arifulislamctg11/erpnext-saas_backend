@@ -5,6 +5,7 @@ import type { Request, Response } from "express";
 import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
+import usersRoutes from "./routes/users.routes.js";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import { subscriptionEmailTemp } from "./util/emailTemplate.js";
 import { getWelcomeEmailTemplate } from "./util/welcomeEmailTemplate.js";
@@ -65,6 +66,9 @@ app.use(
 app.use(express.json());
 
 app.use(cookieParser());
+
+// mount users router
+app.use(usersRoutes);
 
 // Issue JWT cookie
 app.post("/jwt", (req: Request, res: Response) => {
@@ -226,6 +230,7 @@ app.get("/cancel", (_req: Request, res: Response) => {
   });
 });
 
+/* moved to routes/users.routes.ts
 app.get("/users", async (req: Request, res: Response) => {
   try {
     const { email } = req.query as { email?: string };
@@ -253,6 +258,8 @@ app.get("/users", async (req: Request, res: Response) => {
       .json({ success: false, error: "Internal server error" });
   }
 });
+*/
+/* moved to routes/users.routes.ts
 app.get("/customers", async (req: Request, res: Response) => {
   try {
     const db = client.db("erpnext_saas");
@@ -343,7 +350,9 @@ app.get("/customers", async (req: Request, res: Response) => {
     });
   }
 });
+*/
 
+/* moved to routes/users.routes.ts
 app.post("/register", async (req: Request, res: Response) => {
   try {
     const {
@@ -487,6 +496,7 @@ app.post("/register", async (req: Request, res: Response) => {
     });
   }
 });
+*/
 
 // Store subscription data
 app.post("/subscriptions", async (req: Request, res: Response) => {
