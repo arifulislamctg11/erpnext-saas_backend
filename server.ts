@@ -242,7 +242,7 @@ app.get("/cancel", (_req: Request, res: Response) => {
 
 */
 /* moved to routes/subscriptions.routes.ts
-
+*/
 //Forgot Password OTP Sending
 app.post("/sendotp", async (req: Request, res: Response) => {
   try {
