@@ -5,6 +5,7 @@ import type { Request, Response } from "express";
 import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
+import usersRoutes from "./routes/users.routes.js";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import { subscriptionEmailTemp } from "./util/emailTemplate.js";
 import { getWelcomeEmailTemplate } from "./util/welcomeEmailTemplate.js";
@@ -66,6 +67,9 @@ app.use(
 app.use(express.json());
 
 app.use(cookieParser());
+
+// mount users router
+app.use(usersRoutes);
 
 // Issue JWT cookie
 app.post("/jwt", (req: Request, res: Response) => {
@@ -227,33 +231,13 @@ app.get("/cancel", (_req: Request, res: Response) => {
   });
 });
 
-app.get("/users", async (req: Request, res: Response) => {
-  try {
-    const { email } = req.query as { email?: string };
-    if (!email) {
-      return res.status(400).json({ success: false, error: "email required" });
-    }
+/* moved to routes/users.routes.ts
 
-    const db = client.db("erpnext_saas");
-    const users = db.collection("users");
+*/
+/* moved to routes/users.routes.ts
 
-    const user = await users.findOne(
-      { email: String(email).toLowerCase() },
-      { projection: { email: 1, role: 1, _id: 0 } }
-    );
+*/
 
-    if (!user) {
-      return res.status(404).json({ success: false, error: "User not found" });
-    }
-
-    return res.status(200).json(user);
-  } catch (err) {
-    console.error("Get user error:", err);
-    return res
-      .status(500)
-      .json({ success: false, error: "Internal server error" });
-  }
-});
 app.get("/customers", async (req: Request, res: Response) => {
   try {
     const db = client.db("erpnext_saas");
@@ -723,6 +707,8 @@ app.get("/subscriptions", async (req: Request, res: Response) => {
   }
 });
 
+/* moved to routes/subscriptions.routes.ts
+*/
 //Forgot Password OTP Sending
 app.post("/sendotp", async (req: Request, res: Response) => {
   try {
@@ -1145,6 +1131,117 @@ app.post("/create-user-and-employee", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/home-plans", async (req: Request, res: Response) => {
+  try {
+
+    const db = client.db("erpnext_saas");
+    const PlanCollection = db.collection("plans");
+    const products = await stripe1.products.list({ limit: 100 });
+
+    const productsWithPrices = await Promise.all(
+      products.data.map(async (product: any) => {
+        const prices: any = await stripe1.prices.list({
+          product: product.id,
+          limit: 100,
+        });
+
+        return {
+          ...product,
+          price:  prices.data[0],
+          features: JSON.parse(product?.metadata?.features)
+        };
+      })
+    );
+    return res.status(200).json({
+      success: true,
+      products: productsWithPrices
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
+
+app.get("/admin-secret", async (req: Request, res: Response) => {
+  try {
+
+    const db = client.db("erpnext_saas");
+    const SecretCollection = db.collection("admin_secret");
+    const result = await SecretCollection.find({}).toArray();
+
+    return res.status(200).json({
+      success: true,
+      result
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
+
+
+async function fetchSubscriptionsByPage(page = 1) {
+  const limit = 100;
+  let startingAfter = null;
+
+  // If requesting page 1, fetch directly
+  if (page === 1) {
+    const response = await stripe1.subscriptions.list({ limit });
+    return response.data;
+  }
+
+  // Get the correct starting point by iterating to the (page - 1) * limit
+  let allItems: any = [];
+  let hasMore = true;
+
+  while (hasMore && allItems.length < (page - 1) * limit) {
+    const response: any = await stripe1.subscriptions.list({
+      limit,
+      ...(startingAfter && { starting_after: startingAfter }),
+    });
+
+    allItems = allItems.concat(response.data);
+    hasMore = response.has_more;
+
+    if (hasMore) {
+      startingAfter = response.data[response.data.length - 1].id;
+    }
+  }
+
+  // Now fetch the actual page
+  const pageResponse = await stripe1.subscriptions.list({
+    limit,
+    ...(startingAfter && { starting_after: startingAfter }),
+  });
+
+  return pageResponse.data;
+}
+
+
+app.get("/stripe-subscription", async (req: Request, res: Response) => {
+  try {
+    const {page}: any = req.query
+    const pageNo: any = parseInt(page) || 1;
+    const subscriptions = await fetchSubscriptionsByPage(pageNo);
+
+    return res.status(200).json({
+      success: true,
+      data: subscriptions,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
 
 export default app;
 
