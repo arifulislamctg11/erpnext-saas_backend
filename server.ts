@@ -464,7 +464,7 @@ app.post("/register", async (req: Request, res: Response) => {
         console.log('Welcome email sent:', emailSendRes);
       } catch (emailError) {
         console.error('Welcome email failed:', emailError);
-        
+
       }
 
       return res.status(201).json({
@@ -645,18 +645,18 @@ app.put(
         });
       }
 
-    return res.status(200).json({ 
-      success: true,
-      message: "Subscription updated successfully" 
-    });
-  } catch (err) {
-    console.error("Update subscription error:", err);
-    return res.status(500).json({ 
-      success: false,
-      error: "Internal server error" 
-    });
-  }
-});
+      return res.status(200).json({
+        success: true,
+        message: "Subscription updated successfully"
+      });
+    } catch (err) {
+      console.error("Update subscription error:", err);
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error"
+      });
+    }
+  });
 
 // Get all subscriptions (admin) with filters
 app.get("/subscriptions", async (req: Request, res: Response) => {
@@ -793,8 +793,8 @@ app.post("/reset-password", async (req: Request, res: Response) => {
 //Current Plan
 app.get("/current-plan", async (req: Request, res: Response) => {
   try {
-    const {email} : any= req.query
-    
+    const { email }: any = req.query
+
     const db = client.db("erpnext_saas");
     const subscriptions = db.collection("subscriptions");
 
@@ -928,38 +928,38 @@ app.post("/create-plan", async (req: Request, res: Response) => {
     const db = client.db("erpnext_saas");
     const PlanCollection = db.collection("plans");
     const result = await PlanCollection.insertOne(req.body);
-    
+
     if (!result) {
       return res.status(404).json({
         success: false,
         message: 'Plan creation failed',
       });
     }
-    if(result){
-       const product = await stripe1.products.create({
-      name: req.body?.planName,
-      metadata: {
-        features: JSON.stringify(req.body.features)
-      }
-    });
+    if (result) {
+      const product = await stripe1.products.create({
+        name: req.body?.planName,
+        metadata: {
+          features: JSON.stringify(req.body.features)
+        }
+      });
 
-    // 2. Create the price (recurring)
-    const price = await stripe1.prices.create({
-      unit_amount: Number(req.body?.planPrice) * 100, // amount in cents
-      currency: 'usd',
-      recurring: { interval: 'month' },
-      product: product.id,
-    });
+      // 2. Create the price (recurring)
+      const price = await stripe1.prices.create({
+        unit_amount: Number(req.body?.planPrice) * 100, // amount in cents
+        currency: 'usd',
+        recurring: { interval: 'month' },
+        product: product.id,
+      });
 
     }
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
       message: 'Plan Created Successfully'
     });
   } catch (err) {
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      error: "Internal server error" 
+      error: "Internal server error"
     });
   }
 });
@@ -970,7 +970,7 @@ app.get("/plans", async (req: Request, res: Response) => {
     const db = client.db("erpnext_saas");
     const PlanCollection = db.collection("plans");
     const result = await PlanCollection.find({}).toArray();
-    const products = await stripe1.products.list({limit: 100});
+    const products = await stripe1.products.list({ limit: 100 });
 
     if (result.length === 0) {
       return res.status(404).json({
@@ -978,7 +978,7 @@ app.get("/plans", async (req: Request, res: Response) => {
         message: 'No plans found',
       });
     }
-  
+
     const productsWithPrices = await Promise.all(
       products.data.map(async (product: any) => {
         const prices: any = await stripe1.prices.list({
@@ -993,15 +993,15 @@ app.get("/plans", async (req: Request, res: Response) => {
         };
       })
     );
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
       data: result,
       products: productsWithPrices
     });
   } catch (err) {
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      error: "Internal server error" ,
+      error: "Internal server error",
       err
     });
   }
@@ -1009,24 +1009,24 @@ app.get("/plans", async (req: Request, res: Response) => {
 
 app.get("/plans/:id", async (req: Request, res: Response) => {
   try {
-    const {id}: any = req.params
+    const { id }: any = req.params
     const db = client.db("erpnext_saas");
     // const PlanCollection = db.collection("plans");
 
     // const result = await PlanCollection.findOne( { _id: new ObjectId(id) },)
     const result: any = await stripe1.products.retrieve(id);
-    const pr: any =  await stripe1.prices.list({
-          product: id,
-          limit: 100,
-        });
-    return res.status(200).json({ 
+    const pr: any = await stripe1.prices.list({
+      product: id,
+      limit: 100,
+    });
+    return res.status(200).json({
       success: true,
-      data: {...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features)}
+      data: { ...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features) }
     });
   } catch (err) {
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      error: "Internal server error" ,
+      error: "Internal server error",
       err
     });
   }
@@ -1034,10 +1034,10 @@ app.get("/plans/:id", async (req: Request, res: Response) => {
 
 app.post("/update-plan", async (req: Request, res: Response) => {
   try {
-    const {id, ...rest} : any= req.body
- 
+    const { id, ...rest }: any = req.body
+
     const db = client.db("erpnext_saas");
-   const PlanCollection = db.collection("plans");
+    const PlanCollection = db.collection("plans");
 
     // const result = await PlanCollection.updateOne(
     //   { _id: new ObjectId(_id)},
@@ -1045,26 +1045,101 @@ app.post("/update-plan", async (req: Request, res: Response) => {
     // );
 
     const updatedProduct = await stripe1.products.update(id, {
-        name: rest?.name,
-        metadata: {
-          features: JSON.stringify(rest.features)
-        }
-      });
-      
-      const newPrice = await stripe1.prices.create({
-        unit_amount: Number(rest?.price),
-        currency: 'usd',
-        recurring: { interval: 'month' },
-        product: id,
-      });
-    return res.status(200).json({ 
+      name: rest?.name,
+      metadata: {
+        features: JSON.stringify(rest.features)
+      }
+    });
+
+    const newPrice = await stripe1.prices.create({
+      unit_amount: Number(rest?.price),
+      currency: 'usd',
+      recurring: { interval: 'month' },
+      product: id,
+    });
+    return res.status(200).json({
       success: true,
       message: 'updated successfully!'
     });
   } catch (err) {
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      error: "Internal server error" 
+      error: "Internal server error"
+    });
+  }
+});
+
+app.post("/create-user-and-employee", async (req: Request, res: Response) => {
+
+  const {
+    firstName,
+    lastName,
+    email,
+    companyName,
+    dateOfBirth,
+    joiningDate,
+    password,
+    gender
+  } = req.body;
+
+  try {
+    const db = client.db("erpnext_saas");
+    const users = db.collection("users");
+
+    const existing = await users.findOne({ email });
+    if (!existing) {
+      const user_obj = {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        enabled: 1,
+      };
+      const user_create = await CreateUser(user_obj);
+      const employee_obj = {
+        employee_name: `${firstName} ${lastName}`,
+        first_name: firstName,
+        last_name: lastName,
+        gender,
+        date_of_birth: dateOfBirth,
+        date_of_joining: joiningDate,
+        company: companyName,
+        employment_type: "Full-time",
+      };
+      console.log("01", employee_obj);
+      const exmployee_create = await CreateEmployee(employee_obj);
+      console.log("03", exmployee_create);
+
+      const employee_updateobj = {
+        user_id: email,
+      };
+      const exmployee_update = await UpdateEmployee(
+        exmployee_create?.data?.name,
+        employee_updateobj
+      );
+
+      const user_updateobj = {
+        new_password: password,
+      };
+      const user_update = await UpdateUser(email, user_updateobj);
+      console.log("02", user_update);
+
+      return res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+        user_update,
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: "Email already registered",
+      });
+    }
+
+
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
     });
   }
 });
