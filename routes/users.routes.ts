@@ -248,7 +248,7 @@ router.post("/register", async (req: Request, res: Response) => {
       });
 
       try {
-        const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName);
+        const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName,email);
         await sendEmail(email, welcomeEmailTemplate.subject, welcomeEmailTemplate.email_Body);
       } catch {}
 

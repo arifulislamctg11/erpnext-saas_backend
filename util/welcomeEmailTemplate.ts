@@ -1,10 +1,12 @@
-export const getWelcomeEmailTemplate = (firstName: string, companyName: string) => {
+export const getWelcomeEmailTemplate = (firstName: string, companyName: string, email:string) => {
     const subject = 'Welcome to ERP Next SaaS Platform'
     const email_Body = `<h1>Welcome to ERP Next SaaS!</h1>
     <h2>Hello ${firstName},</h2>
     <p>Welcome to our ERP Next SaaS platform! We're excited to have you and <strong>${companyName}</strong> on board.</p>
     <p></p>
     <p>Your account has been successfully created and you can now:</p>
+    <p>  Your username ${email} is This is your temporary password : <b>My$ecureP@ssw0rd </b> <p>
+    
    
     <p></p>
     <p>If you have any questions or need assistance getting started, please don't hesitate to reach out to our support team.</p>
