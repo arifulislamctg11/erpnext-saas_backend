@@ -1292,7 +1292,11 @@ app.get("/stripe-subscription", async (req: Request, res: Response) => {
   try {
     const { page }: any = req.query
     const pageNo: any = parseInt(page) || 1;
-    const subscriptions = await fetchSubscriptionsByPage(pageNo);
+    // const subscriptions = await fetchSubscriptionsByPage(pageNo);
+      const subscriptions = await stripe1.subscriptions.list({
+        limit: 100,
+        expand: ['data.customer', 'data.plan.product', 'data.latest_invoice.payment_intent' ], // This expands the customer field in each subscription
+      });
 
     return res.status(200).json({
       success: true,
