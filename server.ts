@@ -56,7 +56,7 @@ app.use(
       "http://localhost:8081",
       "https://innovatun-23ee3.web.app",
       "https://innovatun-23ee3.firebaseapp.com",
-      "https://innovatun-4d675.web.app/"
+      "https://innovatun-4d675.web.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
