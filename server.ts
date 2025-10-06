@@ -1144,6 +1144,59 @@ app.post("/create-user-and-employee", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/home-plans", async (req: Request, res: Response) => {
+  try {
+
+    const db = client.db("erpnext_saas");
+    const PlanCollection = db.collection("plans");
+    const products = await stripe1.products.list({ limit: 100 });
+
+    const productsWithPrices = await Promise.all(
+      products.data.map(async (product: any) => {
+        const prices: any = await stripe1.prices.list({
+          product: product.id,
+          limit: 100,
+        });
+
+        return {
+          ...product,
+          price:  prices.data[0],
+          features: JSON.parse(product?.metadata?.features)
+        };
+      })
+    );
+    return res.status(200).json({
+      success: true,
+      products: productsWithPrices
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
+
+app.get("/admin-secret", async (req: Request, res: Response) => {
+  try {
+
+    const db = client.db("erpnext_saas");
+    const SecretCollection = db.collection("admin_secret");
+    const result = await SecretCollection.find({}).toArray();
+
+    return res.status(200).json({
+      success: true,
+      result
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
 
 export default app;
 
