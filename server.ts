@@ -5,6 +5,7 @@ import type { Request, Response } from "express";
 import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
+import usersRoutes from "./routes/users.routes.js";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import { subscriptionEmailTemp } from "./util/emailTemplate.js";
 import { getWelcomeEmailTemplate } from "./util/welcomeEmailTemplate.js";
@@ -56,6 +57,7 @@ app.use(
       "http://localhost:8081",
       "https://innovatun-23ee3.web.app",
       "https://innovatun-23ee3.firebaseapp.com",
+      "https://innovatun-4d675.web.app/",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -65,6 +67,9 @@ app.use(
 app.use(express.json());
 
 app.use(cookieParser());
+
+// mount users router
+app.use(usersRoutes);
 
 // Issue JWT cookie
 app.post("/jwt", (req: Request, res: Response) => {
@@ -226,21 +231,14 @@ app.get("/cancel", (_req: Request, res: Response) => {
   });
 });
 
-app.get("/users", async (req: Request, res: Response) => {
-  try {
-    const { email } = req.query as { email?: string };
-    if (!email) {
-      return res.status(400).json({ success: false, error: "email required" });
-    }
+/* moved to routes/users.routes.ts
 
-    const db = client.db("erpnext_saas");
-    const users = db.collection("users");
+*/
+/* moved to routes/users.routes.ts
 
-    const user = await users.findOne(
-      { email: String(email).toLowerCase() },
-      { projection: { email: 1, role: 1, _id: 0 } }
-    );
+*/
 
+<<<<<<< HEAD
     if (!user) {
       return res.status(404).json({ success: false, error: "User not found" });
     }
@@ -721,7 +719,13 @@ app.get("/subscriptions", async (req: Request, res: Response) => {
     });
   }
 });
+=======
+/* moved to routes/users.routes.ts
+>>>>>>> 9f913f56fd3417216241ceb0901a04b64ccb2de4
 
+*/
+/* moved to routes/subscriptions.routes.ts
+*/
 //Forgot Password OTP Sending
 app.post("/sendotp", async (req: Request, res: Response) => {
   try {
