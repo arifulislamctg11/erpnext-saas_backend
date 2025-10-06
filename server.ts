@@ -238,19 +238,6 @@ app.get("/cancel", (_req: Request, res: Response) => {
 
 */
 
-<<<<<<< HEAD
-    if (!user) {
-      return res.status(404).json({ success: false, error: "User not found" });
-    }
-
-    return res.status(200).json(user);
-  } catch (err) {
-    console.error("Get user error:", err);
-    return res
-      .status(500)
-      .json({ success: false, error: "Internal server error" });
-  }
-});
 app.get("/customers", async (req: Request, res: Response) => {
   try {
     const db = client.db("erpnext_saas");
@@ -719,11 +706,7 @@ app.get("/subscriptions", async (req: Request, res: Response) => {
     });
   }
 });
-=======
-/* moved to routes/users.routes.ts
->>>>>>> 9f913f56fd3417216241ceb0901a04b64ccb2de4
 
-*/
 /* moved to routes/subscriptions.routes.ts
 */
 //Forgot Password OTP Sending
@@ -1192,6 +1175,64 @@ app.get("/admin-secret", async (req: Request, res: Response) => {
     return res.status(200).json({
       success: true,
       result
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
+
+
+async function fetchSubscriptionsByPage(page = 1) {
+  const limit = 100;
+  let startingAfter = null;
+
+  // If requesting page 1, fetch directly
+  if (page === 1) {
+    const response = await stripe1.subscriptions.list({ limit });
+    return response.data;
+  }
+
+  // Get the correct starting point by iterating to the (page - 1) * limit
+  let allItems: any = [];
+  let hasMore = true;
+
+  while (hasMore && allItems.length < (page - 1) * limit) {
+    const response: any = await stripe1.subscriptions.list({
+      limit,
+      ...(startingAfter && { starting_after: startingAfter }),
+    });
+
+    allItems = allItems.concat(response.data);
+    hasMore = response.has_more;
+
+    if (hasMore) {
+      startingAfter = response.data[response.data.length - 1].id;
+    }
+  }
+
+  // Now fetch the actual page
+  const pageResponse = await stripe1.subscriptions.list({
+    limit,
+    ...(startingAfter && { starting_after: startingAfter }),
+  });
+
+  return pageResponse.data;
+}
+
+
+app.get("/stripe-subscription", async (req: Request, res: Response) => {
+  try {
+    const {page}: any = req.query
+    const pageNo: any = parseInt(page) || 1;
+    const subscriptions = await fetchSubscriptionsByPage(pageNo);
+
+    return res.status(200).json({
+      success: true,
+      data: subscriptions,
     });
   } catch (err) {
     return res.status(500).json({
