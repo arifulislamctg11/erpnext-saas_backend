@@ -446,7 +446,7 @@ app.post("/register", async (req: Request, res: Response) => {
 
       // Send welcome email after successful registration
       try {
-        const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName);
+        const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName, email);
         const emailSendRes = await sendEmail(email, welcomeEmailTemplate.subject, welcomeEmailTemplate.email_Body);
         console.log('Welcome email sent:', emailSendRes);
       } catch (emailError) {
@@ -476,62 +476,9 @@ app.post("/register", async (req: Request, res: Response) => {
 
 app.post("/set-role", async (req: Request, res: Response) => {
 
-  const { email } = req.body;
-  const update_user_roles_obj = {
-    "roles": [
-      { "role": "Academics User" },
-      { "role": "Accounts Manager" },
-      { "role": "Accounts User" },
-      { "role": "Agriculture Manager" },
-      { "role": "Agriculture User" },
-      { "role": "Analytics" },
-      { "role": "Auditor" },
-      { "role": "Blogger" },
-      { "role": "Customer" },
-      { "role": "Dashboard Manager" },
-      { "role": "Delivery Manager" },
-      { "role": "Delivery User" },
-      { "role": "Employee" },
-      { "role": "Employee Self Service" },
-      { "role": "Expense Approver" },
-      { "role": "Fleet Manager" },
-      { "role": "Fulfillment User" },
-      { "role": "HR Manager" },
-      { "role": "HR User" },
-      { "role": "Inbox User" },
-      { "role": "Interviewer" },
-      { "role": "Item Manager" },
-      { "role": "Knowledge Base Contributor" },
-      { "role": "Knowledge Base Editor" },
-      { "role": "Leave Approver" },
-      { "role": "Maintenance Manager" },
-      { "role": "Maintenance User" },
-      { "role": "Manufacturing Manager" },
-      { "role": "Manufacturing User" },
-      { "role": "Newsletter Manager" },
-      { "role": "Prepared Report User" },
-      { "role": "Projects Manager" },
-      { "role": "Projects User" },
-      { "role": "Purchase Manager" },
-      { "role": "Purchase Master Manager" },
-      { "role": "Purchase User" },
-      { "role": "Quality Manager" },
-      { "role": "Report Manager" },
-      { "role": "Sales Manager" },
-      { "role": "Sales Master Manager" },
-      { "role": "Sales User" },
-      { "role": "Script Manager" },
-      { "role": "Stock Manager" },
-      { "role": "Stock User" },
-      { "role": "Supplier" },
-      { "role": "Support Team" },
-      { "role": "System Manager" },
-      { "role": "Translator" },
-      { "role": "Website Manager" },
-      { "role": "Workspace Manager" }
-    ]
-  }
-  const update_user_roles = await UpdateUser(email, update_user_roles_obj);
+  const { email, roles } = req.body;
+
+  const update_user_roles = await UpdateUser(email, {roles: roles});
   console.log("update_user_roles", update_user_roles);
   res.send(update_user_roles);
 })
@@ -988,15 +935,16 @@ app.post("/create-plan", async (req: Request, res: Response) => {
     }
     if (result) {
       const product = await stripe1.products.create({
-        name: req.body?.planName,
+        name: req.body?.name,
         metadata: {
-          features: JSON.stringify(req.body.features)
+          features: JSON.stringify(req.body.features),
+          access_roles: JSON.stringify(req.body.access_roles),
         }
       });
 
       // 2. Create the price (recurring)
       const price = await stripe1.prices.create({
-        unit_amount: Number(req.body?.planPrice) * 100, // amount in cents
+        unit_amount: Number(req.body?.price) * 100, // amount in cents
         currency: 'usd',
         recurring: { interval: 'month' },
         product: product.id,
@@ -1010,7 +958,7 @@ app.post("/create-plan", async (req: Request, res: Response) => {
   } catch (err) {
     return res.status(500).json({
       success: false,
-      error: "Internal server error"
+      error: err
     });
   }
 });
@@ -1072,7 +1020,7 @@ app.get("/plans/:id", async (req: Request, res: Response) => {
     });
     return res.status(200).json({
       success: true,
-      data: { ...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features) }
+      data: { ...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features), access_roles: result?.metadata?.access_roles ? JSON.parse(result?.metadata?.access_roles) : {} }
     });
   } catch (err) {
     return res.status(500).json({
@@ -1098,7 +1046,8 @@ app.post("/update-plan", async (req: Request, res: Response) => {
     const updatedProduct = await stripe1.products.update(id, {
       name: rest?.name,
       metadata: {
-        features: JSON.stringify(rest.features)
+        features: JSON.stringify(rest.features),
+         access_roles: JSON.stringify(req.body.access_roles),
       }
     });
 
@@ -1115,7 +1064,7 @@ app.post("/update-plan", async (req: Request, res: Response) => {
   } catch (err) {
     return res.status(500).json({
       success: false,
-      error: "Internal server error"
+      error: err
     });
   }
 });
@@ -1212,7 +1161,8 @@ app.get("/home-plans", async (req: Request, res: Response) => {
         return {
           ...product,
           price: prices.data[0],
-          features: JSON.parse(product?.metadata?.features)
+          features: JSON.parse(product?.metadata?.features),
+          access_roles: JSON.parse(product?.metadata?.access_roles)
         };
       })
     );
