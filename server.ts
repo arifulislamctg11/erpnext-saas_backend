@@ -57,7 +57,7 @@ app.use(
       "http://localhost:8081",
       "https://innovatun-23ee3.web.app",
       "https://innovatun-23ee3.firebaseapp.com",
-      "https://innovatun-4d675.web.app/"
+      "https://innovatun-4d675.web.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -430,6 +430,8 @@ app.post("/register", async (req: Request, res: Response) => {
       };
       const user_update = await UpdateUser(email, user_updateobj);
 
+
+
       const profileCompleteResult = await profileComplete.insertOne({
         Company_Creation: true,
         Company_Creation_prcnt: 25,
@@ -444,19 +446,18 @@ app.post("/register", async (req: Request, res: Response) => {
 
       // Send welcome email after successful registration
       try {
-        const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName);
+        const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName, email);
         const emailSendRes = await sendEmail(email, welcomeEmailTemplate.subject, welcomeEmailTemplate.email_Body);
         console.log('Welcome email sent:', emailSendRes);
       } catch (emailError) {
         console.error('Welcome email failed:', emailError);
-
       }
 
       return res.status(201).json({
         success: true,
         message: "User registered successfully",
         userId: result.insertedId,
-        user_update,
+     
       });
     } else {
       return res.status(201).json({
@@ -472,6 +473,16 @@ app.post("/register", async (req: Request, res: Response) => {
     });
   }
 });
+
+app.post("/set-role", async (req: Request, res: Response) => {
+
+  const { email, roles } = req.body;
+
+  const update_user_roles = await UpdateUser(email, {roles: roles});
+  console.log("update_user_roles", update_user_roles);
+  res.send(update_user_roles);
+})
+
 
 // Store subscription data
 app.post("/subscriptions", async (req: Request, res: Response) => {
@@ -924,15 +935,16 @@ app.post("/create-plan", async (req: Request, res: Response) => {
     }
     if (result) {
       const product = await stripe1.products.create({
-        name: req.body?.planName,
+        name: req.body?.name,
         metadata: {
-          features: JSON.stringify(req.body.features)
+          features: JSON.stringify(req.body.features),
+          access_roles: JSON.stringify(req.body.access_roles),
         }
       });
 
       // 2. Create the price (recurring)
       const price = await stripe1.prices.create({
-        unit_amount: Number(req.body?.planPrice) * 100, // amount in cents
+        unit_amount: Number(req.body?.price) * 100, // amount in cents
         currency: 'usd',
         recurring: { interval: 'month' },
         product: product.id,
@@ -946,7 +958,7 @@ app.post("/create-plan", async (req: Request, res: Response) => {
   } catch (err) {
     return res.status(500).json({
       success: false,
-      error: "Internal server error"
+      error: err
     });
   }
 });
@@ -1008,7 +1020,7 @@ app.get("/plans/:id", async (req: Request, res: Response) => {
     });
     return res.status(200).json({
       success: true,
-      data: { ...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features) }
+      data: { ...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features), access_roles: result?.metadata?.access_roles ? JSON.parse(result?.metadata?.access_roles) : {} }
     });
   } catch (err) {
     return res.status(500).json({
@@ -1034,7 +1046,8 @@ app.post("/update-plan", async (req: Request, res: Response) => {
     const updatedProduct = await stripe1.products.update(id, {
       name: rest?.name,
       metadata: {
-        features: JSON.stringify(rest.features)
+        features: JSON.stringify(rest.features),
+         access_roles: JSON.stringify(req.body.access_roles),
       }
     });
 
@@ -1051,7 +1064,7 @@ app.post("/update-plan", async (req: Request, res: Response) => {
   } catch (err) {
     return res.status(500).json({
       success: false,
-      error: "Internal server error"
+      error: err
     });
   }
 });
@@ -1147,8 +1160,9 @@ app.get("/home-plans", async (req: Request, res: Response) => {
 
         return {
           ...product,
-          price:  prices.data[0],
-          features: JSON.parse(product?.metadata?.features)
+          price: prices.data[0],
+          features: JSON.parse(product?.metadata?.features),
+          access_roles: JSON.parse(product?.metadata?.access_roles)
         };
       })
     );
@@ -1226,7 +1240,7 @@ async function fetchSubscriptionsByPage(page = 1) {
 
 app.get("/stripe-subscription", async (req: Request, res: Response) => {
   try {
-    const {page}: any = req.query
+    const { page }: any = req.query
     const pageNo: any = parseInt(page) || 1;
     // const subscriptions = await fetchSubscriptionsByPage(pageNo);
       const subscriptions = await stripe1.subscriptions.list({
