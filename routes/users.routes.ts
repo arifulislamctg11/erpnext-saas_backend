@@ -139,6 +139,7 @@ router.get("/customers", async (_req: Request, res: Response) => {
 });
 
 router.post("/register", async (req: Request, res: Response) => {
+  console.log("Register 2")
   try {
     const {
       companyName,

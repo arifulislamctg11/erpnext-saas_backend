@@ -5,7 +5,7 @@ import type { Request, Response } from "express";
 import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
-import usersRoutes from "./routes/users.routes.js";
+// import usersRoutes from "./routes/users.routes.js";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import { subscriptionEmailTemp } from "./util/emailTemplate.js";
 import { getWelcomeEmailTemplate } from "./util/welcomeEmailTemplate.js";
@@ -15,6 +15,7 @@ import {
   CreateEmployee,
   CreateUser,
   ResourceEmployee,
+  SetUserPermission,
   UpdateEmployee,
   UpdateUser,
 } from "./services/users/users.serv.js";
@@ -69,7 +70,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // mount users router
-app.use(usersRoutes);
+// app.use(usersRoutes);
 
 // Issue JWT cookie
 app.post("/jwt", (req: Request, res: Response) => {
@@ -330,6 +331,7 @@ app.get("/customers", async (req: Request, res: Response) => {
 });
 
 app.post("/register", async (req: Request, res: Response) => {
+   
   try {
     const {
       companyName,
@@ -429,6 +431,8 @@ app.post("/register", async (req: Request, res: Response) => {
         new_password: "My$ecureP@ssw0rd",
       };
       const user_update = await UpdateUser(email, user_updateobj);
+      const setUserPermission =await SetUserPermission(email)
+    
 
 
 
@@ -473,6 +477,13 @@ app.post("/register", async (req: Request, res: Response) => {
     });
   }
 });
+
+app.post("/testing",async (req:Request, res: Response)=>{
+     const setUserPermission =await SetUserPermission("brandnewuser6@gmail.com");
+   
+console.log(setUserPermission);
+res.send(setUserPermission)
+})
 
 app.post("/set-role", async (req: Request, res: Response) => {
 
@@ -1121,7 +1132,9 @@ app.post("/create-user-and-employee", async (req: Request, res: Response) => {
         new_password: password,
       };
       const user_update = await UpdateUser(email, user_updateobj);
-      console.log("02", user_update);
+    
+       const setUserPermission =await SetUserPermission(email)
+         console.log("02",setUserPermission);
 
       return res.status(201).json({
         success: true,

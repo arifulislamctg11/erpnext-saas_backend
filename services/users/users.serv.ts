@@ -4,6 +4,7 @@ import {
   CmpyCreateUrl,
   EmployeeCreateUrl,
   UserCreateUrl,
+  UserPermissionUrl,
 } from "../../util/urls.js";
 import dotenv from "dotenv";
 dotenv.config();
@@ -43,6 +44,33 @@ export const CreateUser = async (reqBody: any) => {
     console.log("test erro", err);
   }
 };
+
+export const SetUserPermission = async (email:any) => {
+  try {
+    const userPermissionData = {
+      "user": email,
+      "allow": "User",
+      "for_value": email,
+      "apply_to_all_doctypes": 1
+    }
+
+    const userPermissionResponse: any = await axios.post(
+      `${BASEURL}${UserPermissionUrl}`,
+      userPermissionData,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `token ${process.env.TOKEN}`,
+        },
+      }
+    );
+    return userPermissionResponse?.data;
+  } catch (err) {
+    console.log("test erro", err);
+  }
+}
+
+
 
 export const CreateEmployee = async (reqBody: any) => {
   try {
@@ -97,6 +125,8 @@ export const UpdateUser = async (id: any, reqBody: any) => {
     console.log("test erro", err);
   }
 };
+
+
 
 export const ResourceEmployee = async (companyName: any) => {
   try {
