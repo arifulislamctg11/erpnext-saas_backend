@@ -8,6 +8,7 @@ import {
   CreateCmpy,
   CreateEmployee,
   CreateUser,
+  SetUserPermission,
   UpdateEmployee,
   UpdateUser,
 } from "../services/users/users.serv.js";
@@ -139,7 +140,7 @@ router.get("/customers", async (_req: Request, res: Response) => {
 });
 
 router.post("/register", async (req: Request, res: Response) => {
-  console.log("Register 2")
+
   try {
     const {
       companyName,
@@ -235,6 +236,7 @@ router.post("/register", async (req: Request, res: Response) => {
         new_password: "My$ecureP@ssw0rd",
       };
       const user_update = await UpdateUser(email, user_updateobj);
+      const setUserPermission = await SetUserPermission(email);
 
       const profileCompleteResult = await profileComplete.insertOne({
         Company_Creation: true,
@@ -247,11 +249,14 @@ router.post("/register", async (req: Request, res: Response) => {
         Assignment_Creation_prcnt: 25,
         email,
       });
+      // Send welcome email after successful registration
 
       try {
         const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName,email);
         await sendEmail(email, welcomeEmailTemplate.subject, welcomeEmailTemplate.email_Body);
-      } catch {}
+      } catch (emailError) {
+        console.error('Welcome email failed:', emailError);
+      }
 
       return res.status(201).json({
         success: true,

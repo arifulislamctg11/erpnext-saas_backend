@@ -5,7 +5,7 @@ import type { Request, Response } from "express";
 import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
-// import usersRoutes from "./routes/users.routes.js";
+import usersRoutes from "./routes/users.routes.js";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import { subscriptionEmailTemp } from "./util/emailTemplate.js";
 import { getWelcomeEmailTemplate } from "./util/welcomeEmailTemplate.js";
@@ -70,7 +70,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // mount users router
-// app.use(usersRoutes);
+app.use(usersRoutes);
 
 // Issue JWT cookie
 app.post("/jwt", (req: Request, res: Response) => {
@@ -359,156 +359,155 @@ app.get("/customers", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/register", async (req: Request, res: Response) => {
+// app.post("/register", async (req: Request, res: Response) => {
    
-  try {
-    const {
-      companyName,
-      username,
-      firstName,
-      lastName,
-      email,
-      password,
-      country,
-      currency,
-      abbr,
-      tax_id,
-      domain,
-      date_established,
-    } = req.body;
+//   try {
+//     const {
+//       companyName,
+//       username,
+//       firstName,
+//       lastName,
+//       email,
+//       password,
+//       country,
+//       currency,
+//       abbr,
+//       tax_id,
+//       domain,
+//       date_established,
+//     } = req.body;
 
-    // Validate required fields
-    if (!email || !password || !companyName || !firstName || !lastName) {
-      return res.status(400).json({
-        success: false,
-        error:
-          "Missing required fields: email, password, companyName, firstName, lastName",
-      });
-    }
+//     // Validate required fields
+//     if (!email || !password || !companyName || !firstName || !lastName) {
+//       return res.status(400).json({
+//         success: false,
+//         error:
+//           "Missing required fields: email, password, companyName, firstName, lastName",
+//       });
+//     }
 
-    // Insert into MongoDB
-    const db = client.db("erpnext_saas");
-    const users = db.collection("users");
-    const profileComplete = db.collection("profilecompletes");
+//     // Insert into MongoDB
+//     const db = client.db("erpnext_saas");
+//     const users = db.collection("users");
+//     const profileComplete = db.collection("profilecompletes");
 
-    const existing = await users.findOne({ email });
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        error: "Email already registered",
-      });
-    }
+//     const existing = await users.findOne({ email });
+//     if (existing) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Email already registered",
+//       });
+//     }
 
-    const result = await users.insertOne({
-      companyName,
-      username,
-      firstName,
-      lastName,
-      email,
-      password,
-      country,
-      currency,
-      abbr,
-      tax_id,
-      domain,
-      date_established,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isActive: true,
-      role: "user",
-    });
+//     const result = await users.insertOne({
+//       companyName,
+//       username,
+//       firstName,
+//       lastName,
+//       email,
+//       password,
+//       country,
+//       currency,
+//       abbr,
+//       tax_id,
+//       domain,
+//       date_established,
+//       createdAt: new Date(),
+//       updatedAt: new Date(),
+//       isActive: true,
+//       role: "user",
+//     });
 
-    console.log("User registered successfully:", result.insertedId);
 
-    if (result.insertedId) {
-      const cmpy_obj = {
-        company_name: companyName,
-        abbr: abbr,
-        default_currency: currency,
-      };
-      const cmpy_create = await CreateCmpy(cmpy_obj);
+//     if (result.insertedId) {
+//       const cmpy_obj = {
+//         company_name: companyName,
+//         abbr: abbr,
+//         default_currency: currency,
+//       };
+//       const cmpy_create = await CreateCmpy(cmpy_obj);
 
-      const user_obj = {
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        enabled: 1,
-      };
-      const user_create = await CreateUser(user_obj);
+//       const user_obj = {
+//         email,
+//         first_name: firstName,
+//         last_name: lastName,
+//         enabled: 1,
+//       };
+//       const user_create = await CreateUser(user_obj);
 
-      const employee_obj = {
-        employee_name: `${firstName} ${lastName}`,
-        first_name: firstName,
-        last_name: lastName,
-        gender: "Male",
-        date_of_birth: "1990-05-10",
-        date_of_joining: "2023-09-01",
-        company: companyName,
-        employment_type: "Full-time",
-      };
-      const exmployee_create = await CreateEmployee(employee_obj);
+//       const employee_obj = {
+//         employee_name: `${firstName} ${lastName}`,
+//         first_name: firstName,
+//         last_name: lastName,
+//         gender: "Male",
+//         date_of_birth: "1990-05-10",
+//         date_of_joining: "2023-09-01",
+//         company: companyName,
+//         employment_type: "Full-time",
+//       };
+//       const exmployee_create = await CreateEmployee(employee_obj);
 
-      const employee_updateobj = {
-        user_id: email,
-      };
-      const exmployee_update = await UpdateEmployee(
-        exmployee_create?.data?.name,
-        employee_updateobj
-      );
+//       const employee_updateobj = {
+//         user_id: email,
+//       };
+//       const exmployee_update = await UpdateEmployee(
+//         exmployee_create?.data?.name,
+//         employee_updateobj
+//       );
 
-      const user_updateobj = {
-        new_password: "My$ecureP@ssw0rd",
-      };
-      const user_update = await UpdateUser(email, user_updateobj);
-      const setUserPermission =await SetUserPermission(email)
+//       const user_updateobj = {
+//         new_password: "My$ecureP@ssw0rd",
+//       };
+//       const user_update = await UpdateUser(email, user_updateobj);
+//       const setUserPermission =await SetUserPermission(email)
     
 
 
 
-      const profileCompleteResult = await profileComplete.insertOne({
-        Company_Creation: true,
-        Company_Creation_prcnt: 25,
-        User_Creation: true,
-        User_Creation_prcnt: 25,
-        Employee_Creation: true,
-        Employee_Creation_prcnt: 25,
-        Assignment_Creation: true,
-        Assignment_Creation_prcnt: 25,
-        email,
-      });
+//       const profileCompleteResult = await profileComplete.insertOne({
+//         Company_Creation: true,
+//         Company_Creation_prcnt: 25,
+//         User_Creation: true,
+//         User_Creation_prcnt: 25,
+//         Employee_Creation: true,
+//         Employee_Creation_prcnt: 25,
+//         Assignment_Creation: true,
+//         Assignment_Creation_prcnt: 25,
+//         email,
+//       });
 
-      // Send welcome email after successful registration
-      try {
-        const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName, email);
-        const emailSendRes = await sendEmail(email, welcomeEmailTemplate.subject, welcomeEmailTemplate.email_Body);
-        console.log('Welcome email sent:', emailSendRes);
-      } catch (emailError) {
-        console.error('Welcome email failed:', emailError);
-      }
+//       // Send welcome email after successful registration
+//       try {
+//         const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName, email);
+//         const emailSendRes = await sendEmail(email, welcomeEmailTemplate.subject, welcomeEmailTemplate.email_Body);
+//         console.log('Welcome email sent:', emailSendRes);
+//       } catch (emailError) {
+//         console.error('Welcome email failed:', emailError);
+//       }
 
-      return res.status(201).json({
-        success: true,
-        message: "User registered successfully",
-        userId: result.insertedId,
+//       return res.status(201).json({
+//         success: true,
+//         message: "User registered successfully",
+//         userId: result.insertedId,
      
-      });
-    } else {
-      return res.status(201).json({
-        success: true,
-        message: "User registration failed",
-      });
-    }
-  } catch (err) {
-    console.error("Register error:", err);
-    return res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    });
-  }
-});
+//       });
+//     } else {
+//       return res.status(201).json({
+//         success: true,
+//         message: "User registration failed",
+//       });
+//     }
+//   } catch (err) {
+//     console.error("Register error:", err);
+//     return res.status(500).json({
+//       success: false,
+//       error: "Internal server error",
+//     });
+//   }
+// });
 
 app.post("/testing",async (req:Request, res: Response)=>{
-     const setUserPermission =await SetUserPermission("brandnewuser6@gmail.com");
+     const setUserPermission =await SetUserPermission("july@gmail.com");
    
 console.log(setUserPermission);
 res.send(setUserPermission)
