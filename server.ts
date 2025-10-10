@@ -487,11 +487,12 @@ res.send(setUserPermission)
 
 app.post("/set-role", async (req: Request, res: Response) => {
 
-  const { email, roles } = req.body;
+  const { email, roles , blockRoles} = req.body;
 
   const update_user_roles = await UpdateUser(email, {roles: roles});
-  console.log("update_user_roles", update_user_roles);
-  res.send(update_user_roles);
+  const blockUserRoles = await UpdateUser(email, {block_modules: blockRoles});
+
+  res.send({update_user_roles, blockUserRoles});
 })
 
 
