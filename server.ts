@@ -239,6 +239,35 @@ app.get("/cancel", (_req: Request, res: Response) => {
 
 */
 
+app.get("/users", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.query as { email?: string };
+    if (!email) {
+      return res.status(400).json({ success: false, error: "email required" });
+    }
+
+    const db = client.db("erpnext_saas");
+    const users = db.collection("users");
+
+    const user = await users.findOne(
+      { email: String(email).toLowerCase() },
+      { projection: { email: 1, role: 1, _id: 0 } }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    return res.status(200).json(user);
+  } catch (err) {
+    console.error("Get user error:", err);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
+  }
+});
+
+
 app.get("/customers", async (req: Request, res: Response) => {
   try {
     const db = client.db("erpnext_saas");
