@@ -18,6 +18,7 @@ import {
   SetUserPermission,
   UpdateEmployee,
   UpdateUser,
+  UserCmpyInfoCheck,
 } from "./services/users/users.serv.js";
 
 dotenv.config();
@@ -1241,7 +1242,6 @@ app.get("/admin-secret", async (req: Request, res: Response) => {
   }
 });
 
-
 async function fetchSubscriptionsByPage(page = 1) {
   const limit = 100;
   let startingAfter = null;
@@ -1279,7 +1279,6 @@ async function fetchSubscriptionsByPage(page = 1) {
   return pageResponse.data;
 }
 
-
 app.get("/stripe-subscription", async (req: Request, res: Response) => {
   try {
     const { page }: any = req.query
@@ -1302,6 +1301,26 @@ app.get("/stripe-subscription", async (req: Request, res: Response) => {
     });
   }
 });
+
+app.post("/user-cmpyinfo-check", async (req: Request, res: Response) => {
+  try {
+    const filter = req.body
+    console.log('filter ===>', filter)
+    const userCmpyInfo = await UserCmpyInfoCheck(filter);
+
+    return res.status(200).json({
+      success: true,
+      userCmpyInfo
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
+
 
 export default app;
 
