@@ -2,8 +2,10 @@ import axios from "axios";
 import {
   BASEURL,
   CmpyCreateUrl,
+  CmpyInfoCheck,
   EmployeeCreateUrl,
   UserCreateUrl,
+  UserInfoCheck,
   UserPermissionUrl,
 } from "../../util/urls.js";
 import dotenv from "dotenv";
@@ -70,8 +72,6 @@ export const SetUserPermission = async (email:any) => {
   }
 }
 
-
-
 export const CreateEmployee = async (reqBody: any) => {
   try {
     const response: any = await axios.post(
@@ -126,8 +126,6 @@ export const UpdateUser = async (id: any, reqBody: any) => {
   }
 };
 
-
-
 export const ResourceEmployee = async (companyName: any) => {
   try {
     const response: any = await axios.get(`${BASEURL}${EmployeeCreateUrl}?filters=[["company","=","${companyName}"]]&fields=["*"]`, {
@@ -140,5 +138,20 @@ export const ResourceEmployee = async (companyName: any) => {
     return response?.data;
   } catch (err) {
     console.log("test erro", err);
+  }
+};
+
+export const UserCmpyInfoCheck = async (filterValue: any) => {
+  try {
+    const response: any = await axios.get(`${BASEURL}${filterValue?.name == 'email' ? UserInfoCheck : CmpyInfoCheck}?filters=[["${filterValue?.name}","=","${filterValue?.value}"]]`, {
+      headers: {
+        accept: "application/json",
+        Authorization: `token ${process.env.TOKEN}`,
+      },
+    });
+    console.log("UserCmpyInfoCheck ===>", response?.data);
+    return response?.data;
+  } catch (err) {
+    console.log("UserCmpyInfoCheck err", err);
   }
 };

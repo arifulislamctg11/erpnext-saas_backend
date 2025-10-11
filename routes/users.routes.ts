@@ -210,6 +210,7 @@ router.post("/register", async (req: Request, res: Response) => {
         last_name: lastName,
         enabled: 1,
       };
+      
       const user_create = await CreateUser(user_obj);
 
       const employee_obj = {
@@ -222,11 +223,13 @@ router.post("/register", async (req: Request, res: Response) => {
         company: companyName,
         employment_type: "Full-time",
       };
+
       const exmployee_create = await CreateEmployee(employee_obj);
 
       const employee_updateobj = {
         user_id: email,
       };
+
       const exmployee_update = await UpdateEmployee(
         exmployee_create?.data?.name,
         employee_updateobj
@@ -249,6 +252,7 @@ router.post("/register", async (req: Request, res: Response) => {
         Assignment_Creation_prcnt: 25,
         email,
       });
+      
       // Send welcome email after successful registration
 
       try {
@@ -263,6 +267,11 @@ router.post("/register", async (req: Request, res: Response) => {
         message: "User registered successfully",
         userId: result.insertedId,
         user_update,
+        setUserPermission,
+        exmployee_update,
+        exmployee_create,
+        user_create,
+        cmpy_create
       });
     } else {
       return res.status(201).json({

@@ -7,6 +7,9 @@ export const UserCreateUrl = '/resource/User';
 
 export const EmployeeCreateUrl = '/resource/Employee';
 export const UserPermissionUrl = '/resource/User Permission';
+
+export const CmpyInfoCheck = '/resource/Company';
+export const UserInfoCheck = '/resource/User';
 // export const EmployeeResource = '/resource/Employee?filters=[["company","=","forhad"]]&fields=["*"]';
 
 
