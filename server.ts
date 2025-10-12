@@ -994,6 +994,7 @@ app.post("/create-plan", async (req: Request, res: Response) => {
         metadata: {
           features: JSON.stringify(req.body.features),
           access_roles: JSON.stringify(req.body.access_roles),
+          accessItem: JSON.stringify(req.body.accessItem),
         }
       });
 
@@ -1077,7 +1078,7 @@ app.get("/plans/:id", async (req: Request, res: Response) => {
     });
     return res.status(200).json({
       success: true,
-      data: { ...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features), access_roles: result?.metadata?.access_roles ? JSON.parse(result?.metadata?.access_roles) : {} }
+      data: { ...result, price: pr.data[0].unit_amount, features: JSON.parse(result?.metadata?.features), access_roles: result?.metadata?.access_roles ? JSON.parse(result?.metadata?.access_roles) : {}, accessItem: result?.metadata?.accessItem ? JSON.parse(result?.metadata?.accessItem) : {} }
     });
   } catch (err) {
     return res.status(500).json({
@@ -1105,6 +1106,7 @@ app.post("/update-plan", async (req: Request, res: Response) => {
       metadata: {
         features: JSON.stringify(rest.features),
          access_roles: JSON.stringify(req.body.access_roles),
+         accessItem: JSON.stringify(req.body.accessItem),
       }
     });
 
@@ -1222,7 +1224,8 @@ app.get("/home-plans", async (req: Request, res: Response) => {
           ...product,
           price: prices.data[0],
           features: JSON.parse(product?.metadata?.features),
-          access_roles: JSON.parse(product?.metadata?.access_roles)
+          access_roles: JSON.parse(product?.metadata?.access_roles),
+          accessItem: product?.metadata?.accessItem ? JSON.parse(product?.metadata?.accessItem) : {},
         };
       })
     );
