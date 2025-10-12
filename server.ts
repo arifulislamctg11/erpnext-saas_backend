@@ -49,9 +49,22 @@ async function connectMongo() {
 }
 connectMongo();
 
-const stripe1 = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-08-27.basil",
-});
+const getStripeInst = async (): Promise<any> => {
+    const db = client.db("erpnext_saas");
+    const PlanCollection = db.collection("admin_secret");
+    const result: any = await PlanCollection.find({}).toArray();
+
+    return result[0].stripe_secret
+}
+
+const stripe1 = async() => {
+  const secretKey = await getStripeInst()
+  const  stripeData = new Stripe(secretKey as any, {
+      apiVersion: "2025-08-27.basil",
+  });
+  return stripeData
+}
+
 app.use(
   cors({
     origin: [
@@ -133,8 +146,8 @@ app.post("/create-checkout-session", async (req: Request, res: Response) => {
       successUrl,
       cancelUrl,
     } = req.body || {};
-
-    const session = await stripe1.checkout.sessions.create({
+    const stripe = await stripe1();
+    const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
@@ -161,9 +174,9 @@ app.post("/create-checkout-session", async (req: Request, res: Response) => {
 app.get("/get-session-data/:sessionId", async (req: Request, res: Response) => {
   try {
     const { sessionId }: any = req.params;
-
+    const stripe = await stripe1();
     // Retrieve the Stripe session to get metadata
-    const session = await stripe1.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session && session.metadata) {
       res.json({
@@ -184,12 +197,12 @@ app.get("/get-session-data/:sessionId", async (req: Request, res: Response) => {
 app.post("/create-payment-intent", async (req: Request, res: Response) => {
   try {
     const { amount } = req.body;
-
+    const stripe = await stripe1()
     if (!amount) {
       return res.status(400).json({ error: "Amount is required" });
     }
 
-    const paymentIntent = await stripe1.paymentIntents.create({
+    const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency: "usd",
     });
@@ -967,7 +980,8 @@ app.post("/create-plan", async (req: Request, res: Response) => {
     const db = client.db("erpnext_saas");
     const PlanCollection = db.collection("plans");
     const result = await PlanCollection.insertOne(req.body);
-
+    const stripe = await stripe1()
+    
     if (!result) {
       return res.status(404).json({
         success: false,
@@ -975,7 +989,7 @@ app.post("/create-plan", async (req: Request, res: Response) => {
       });
     }
     if (result) {
-      const product = await stripe1.products.create({
+      const product = await stripe.products.create({
         name: req.body?.name,
         metadata: {
           features: JSON.stringify(req.body.features),
@@ -984,7 +998,7 @@ app.post("/create-plan", async (req: Request, res: Response) => {
       });
 
       // 2. Create the price (recurring)
-      const price = await stripe1.prices.create({
+      const price = await stripe.prices.create({
         unit_amount: Number(req.body?.price) * 100, // amount in cents
         currency: 'usd',
         recurring: { interval: 'month' },
@@ -1010,7 +1024,8 @@ app.get("/plans", async (req: Request, res: Response) => {
     const db = client.db("erpnext_saas");
     const PlanCollection = db.collection("plans");
     const result = await PlanCollection.find({}).toArray();
-    const products = await stripe1.products.list({ limit: 100 });
+    const stripe = await stripe1()
+    const products = await stripe.products.list({ limit: 100 });
 
     if (result.length === 0) {
       return res.status(404).json({
@@ -1021,7 +1036,7 @@ app.get("/plans", async (req: Request, res: Response) => {
 
     const productsWithPrices = await Promise.all(
       products.data.map(async (product: any) => {
-        const prices: any = await stripe1.prices.list({
+        const prices: any = await stripe.prices.list({
           product: product.id,
           limit: 100,
         });
@@ -1051,11 +1066,12 @@ app.get("/plans/:id", async (req: Request, res: Response) => {
   try {
     const { id }: any = req.params
     const db = client.db("erpnext_saas");
+    const stripe = await stripe1()
     // const PlanCollection = db.collection("plans");
 
     // const result = await PlanCollection.findOne( { _id: new ObjectId(id) },)
-    const result: any = await stripe1.products.retrieve(id);
-    const pr: any = await stripe1.prices.list({
+    const result: any = await stripe.products.retrieve(id);
+    const pr: any = await stripe.prices.list({
       product: id,
       limit: 100,
     });
@@ -1078,13 +1094,13 @@ app.post("/update-plan", async (req: Request, res: Response) => {
 
     const db = client.db("erpnext_saas");
     const PlanCollection = db.collection("plans");
-
+    const stripe = await stripe1()
     // const result = await PlanCollection.updateOne(
     //   { _id: new ObjectId(_id)},
     //   { $set: rest }
     // );
 
-    const updatedProduct = await stripe1.products.update(id, {
+    const updatedProduct = await stripe.products.update(id, {
       name: rest?.name,
       metadata: {
         features: JSON.stringify(rest.features),
@@ -1092,7 +1108,7 @@ app.post("/update-plan", async (req: Request, res: Response) => {
       }
     });
 
-    const newPrice = await stripe1.prices.create({
+    const newPrice = await stripe.prices.create({
       unit_amount: Number(rest?.price),
       currency: 'usd',
       recurring: { interval: 'month' },
@@ -1192,11 +1208,12 @@ app.get("/home-plans", async (req: Request, res: Response) => {
 
     const db = client.db("erpnext_saas");
     const PlanCollection = db.collection("plans");
-    const products = await stripe1.products.list({ limit: 100 });
+    const stripe = await stripe1()
+    const products = await stripe.products.list({ limit: 100 });
 
     const productsWithPrices = await Promise.all(
       products.data.map(async (product: any) => {
-        const prices: any = await stripe1.prices.list({
+        const prices: any = await stripe.prices.list({
           product: product.id,
           limit: 100,
         });
@@ -1242,49 +1259,50 @@ app.get("/admin-secret", async (req: Request, res: Response) => {
   }
 });
 
-async function fetchSubscriptionsByPage(page = 1) {
-  const limit = 100;
-  let startingAfter = null;
+// async function fetchSubscriptionsByPage(page = 1) {
+//   const limit = 100;
+//   let startingAfter = null;
 
-  // If requesting page 1, fetch directly
-  if (page === 1) {
-    const response = await stripe1.subscriptions.list({ limit });
-    return response.data;
-  }
+//   // If requesting page 1, fetch directly
+//   if (page === 1) {
+//     const response = await stripe1.subscriptions.list({ limit });
+//     return response.data;
+//   }
 
-  // Get the correct starting point by iterating to the (page - 1) * limit
-  let allItems: any = [];
-  let hasMore = true;
+//   // Get the correct starting point by iterating to the (page - 1) * limit
+//   let allItems: any = [];
+//   let hasMore = true;
 
-  while (hasMore && allItems.length < (page - 1) * limit) {
-    const response: any = await stripe1.subscriptions.list({
-      limit,
-      ...(startingAfter && { starting_after: startingAfter }),
-    });
+//   while (hasMore && allItems.length < (page - 1) * limit) {
+//     const response: any = await stripe1.subscriptions.list({
+//       limit,
+//       ...(startingAfter && { starting_after: startingAfter }),
+//     });
 
-    allItems = allItems.concat(response.data);
-    hasMore = response.has_more;
+//     allItems = allItems.concat(response.data);
+//     hasMore = response.has_more;
 
-    if (hasMore) {
-      startingAfter = response.data[response.data.length - 1].id;
-    }
-  }
+//     if (hasMore) {
+//       startingAfter = response.data[response.data.length - 1].id;
+//     }
+//   }
 
-  // Now fetch the actual page
-  const pageResponse = await stripe1.subscriptions.list({
-    limit,
-    ...(startingAfter && { starting_after: startingAfter }),
-  });
+//   // Now fetch the actual page
+//   const pageResponse = await stripe1.subscriptions.list({
+//     limit,
+//     ...(startingAfter && { starting_after: startingAfter }),
+//   });
 
-  return pageResponse.data;
-}
+//   return pageResponse.data;
+// }
 
 app.get("/stripe-subscription", async (req: Request, res: Response) => {
   try {
     const { page }: any = req.query
     const pageNo: any = parseInt(page) || 1;
+    const stripe = await stripe1()
     // const subscriptions = await fetchSubscriptionsByPage(pageNo);
-      const subscriptions = await stripe1.subscriptions.list({
+      const subscriptions = await stripe.subscriptions.list({
         limit: 100,
         expand: ['data.customer', 'data.plan.product', 'data.latest_invoice.payment_intent' ], // This expands the customer field in each subscription
       });
@@ -1317,6 +1335,30 @@ app.post("/user-cmpyinfo-check", async (req: Request, res: Response) => {
       success: false,
       error: "Internal server error",
       err
+    });
+  }
+});
+
+app.post("/update-admin-secret", async (req: Request, res: Response) => {
+  try {
+    const { _id, ...rest }: any = req.body
+
+    const db = client.db("erpnext_saas");
+    const SecretCollection = db.collection("admin_secret");
+
+    const result = await SecretCollection.updateOne(
+      { _id: new ObjectId(_id)},
+      { $set: rest }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'updated successfully!'
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err
     });
   }
 });
