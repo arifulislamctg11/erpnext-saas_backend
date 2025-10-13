@@ -20,7 +20,7 @@ import {
   UpdateUser,
   UserCmpyInfoCheck,
 } from "./services/users/users.serv.js";
-import { CreatePlan, UpdatePlan } from "./services/plans/planServ.js";
+import { CreatePlan, SubscribeCmpyPlan, UpdatePlan } from "./services/plans/planServ.js";
 
 dotenv.config();
 
@@ -554,6 +554,7 @@ app.post("/subscriptions", async (req: Request, res: Response) => {
       subscriptionId,
       currentPeriodStart,
       currentPeriodEnd,
+      companyName
     } = req.body;
 
     // Validate required fields
@@ -612,11 +613,12 @@ app.post("/subscriptions", async (req: Request, res: Response) => {
       emailTemplate.subject,
       emailTemplate.email_Body
     );
-
+    const subscribeCmpyPlan = await SubscribeCmpyPlan({companyName: companyName, planName: planName})
     return res.status(201).json({
       success: true,
       message: "Subscription stored successfully",
       subscriptionId: result.insertedId,
+      subscribeCmpyPlan
     });
   } catch (err) {
     console.error("Store subscription error:", err);

@@ -15,3 +15,5 @@ export const UserInfoCheck = '/resource/User';
 export const PlanCreateURL = '/resource/Plans';
 
 export const PlanUpdateURL = '/resource/Plan';
+
+export const SubscribeCmpyPlanURL = '/resource/Company'
