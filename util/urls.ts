@@ -10,7 +10,10 @@ export const UserPermissionUrl = '/resource/User Permission';
 
 export const CmpyInfoCheck = '/resource/Company';
 export const UserInfoCheck = '/resource/User';
-// export const EmployeeResource = '/resource/Employee?filters=[["company","=","forhad"]]&fields=["*"]';
 
 
-// {{base_url}}/resource/Employee?filters=[["company","=","forhad"]]
+export const PlanCreateURL = '/resource/Plans';
+
+export const PlanUpdateURL = '/resource/Plan';
+
+export const SubscribeCmpyPlanURL = '/resource/Company'
