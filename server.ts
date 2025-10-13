@@ -20,6 +20,7 @@ import {
   UpdateUser,
   UserCmpyInfoCheck,
 } from "./services/users/users.serv.js";
+import { CreatePlan, UpdatePlan } from "./services/plans/planServ.js";
 
 dotenv.config();
 
@@ -1006,11 +1007,25 @@ app.post("/create-plan", async (req: Request, res: Response) => {
         product: product.id,
       });
 
+        const reqObj = {
+              "name": req?.body?.name,
+              "price": Number(req?.body?.price),
+              "number_of_user": Number(req?.body?.accessItem?.numOfUser),
+              "number_of_quotation": Number(req?.body?.accessItem?.numOfQoutation),
+              "number_of_invoice": Number(req?.body?.accessItem?.numOfInvoice),
+              "number_of_supplier": Number(req?.body?.accessItem?.numOfSupplier),
+              "number_if_customer": Number(req?.body?.accessItem?.numOfCustomer),
+            }
+
+      const createErpPlan = await CreatePlan(reqObj);
+      
+       return res.status(200).json({
+        success: true,
+        message: 'Plan Created Successfully',
+        createErpPlan
+      });
     }
-    return res.status(200).json({
-      success: true,
-      message: 'Plan Created Successfully'
-    });
+ 
   } catch (err) {
     return res.status(500).json({
       success: false,
@@ -1116,9 +1131,23 @@ app.post("/update-plan", async (req: Request, res: Response) => {
       recurring: { interval: 'month' },
       product: id,
     });
+
+      const reqObj = {
+        "name": req?.body?.name,
+        "price": Number(req?.body?.price),
+        "number_of_user": Number(req?.body?.accessItem?.numOfUser),
+        "number_of_quotation": Number(req?.body?.accessItem?.numOfQoutation),
+        "number_of_invoice": Number(req?.body?.accessItem?.numOfInvoice),
+        "number_of_supplier": Number(req?.body?.accessItem?.numOfSupplier),
+        "number_if_customer": Number(req?.body?.accessItem?.numOfCustomer),
+      }
+
+      const updateErpPlan = await UpdatePlan(reqObj);
+
     return res.status(200).json({
       success: true,
-      message: 'updated successfully!'
+      message: 'updated successfully!',
+      updateErpPlan
     });
   } catch (err) {
     return res.status(500).json({
