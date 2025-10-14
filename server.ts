@@ -14,6 +14,9 @@ import {
   CreateCmpy,
   CreateEmployee,
   CreateUser,
+  GetCountry,
+  GetCurrency,
+  GetUserSingle,
   ResourceEmployee,
   SetUserPermission,
   UpdateEmployee,
@@ -301,6 +304,12 @@ app.get("/customers", async (req: Request, res: Response) => {
             createdAt: 1,
             updatedAt: 1,
             isActive: 1,
+            currency: 1,
+            country: 1,
+            tax_id: 1,
+            domain: 1,
+            abbr: 1,
+            date_established: 1
           },
         },
 
@@ -348,6 +357,12 @@ app.get("/customers", async (req: Request, res: Response) => {
             lastLogin: "$updatedAt",
             planName: 1,
             planAmount: 1,
+            currency: 1,
+            country: 1,
+            tax_id: 1,
+            domain: 1,
+            abbr: 1,
+            date_established: 1,
             status: {
               $ifNull: [
                 "$planStatus",
@@ -1293,43 +1308,6 @@ app.get("/admin-secret", async (req: Request, res: Response) => {
   }
 });
 
-// async function fetchSubscriptionsByPage(page = 1) {
-//   const limit = 100;
-//   let startingAfter = null;
-
-//   // If requesting page 1, fetch directly
-//   if (page === 1) {
-//     const response = await stripe1.subscriptions.list({ limit });
-//     return response.data;
-//   }
-
-//   // Get the correct starting point by iterating to the (page - 1) * limit
-//   let allItems: any = [];
-//   let hasMore = true;
-
-//   while (hasMore && allItems.length < (page - 1) * limit) {
-//     const response: any = await stripe1.subscriptions.list({
-//       limit,
-//       ...(startingAfter && { starting_after: startingAfter }),
-//     });
-
-//     allItems = allItems.concat(response.data);
-//     hasMore = response.has_more;
-
-//     if (hasMore) {
-//       startingAfter = response.data[response.data.length - 1].id;
-//     }
-//   }
-
-//   // Now fetch the actual page
-//   const pageResponse = await stripe1.subscriptions.list({
-//     limit,
-//     ...(startingAfter && { starting_after: startingAfter }),
-//   });
-
-//   return pageResponse.data;
-// }
-
 app.get("/stripe-subscription", async (req: Request, res: Response) => {
   try {
     const { page }: any = req.query
@@ -1397,7 +1375,42 @@ app.post("/update-admin-secret", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/country", async (req: Request, res: Response) => {
+  try {
+    const countryData = await GetCountry();
+    const courrencyData = await GetCurrency();
 
+    return res.status(200).json({
+      success: true,
+      data: countryData,
+      courrency: courrencyData
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
+
+app.get("/single-user", async (req: Request, res: Response) => {
+  try {
+    const {email} = req.query
+    const userData = await GetUserSingle(email);
+
+    return res.status(200).json({
+      success: true,
+      data: userData,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
 export default app;
 
 if (process.env.VERCEL !== "1") {
