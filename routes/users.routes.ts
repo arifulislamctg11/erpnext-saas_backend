@@ -72,6 +72,12 @@ router.get("/customers", async (_req: Request, res: Response) => {
             createdAt: 1,
             updatedAt: 1,
             isActive: 1,
+            currency: 1,
+            country: 1,
+            tax_id: 1,
+            domain: 1,
+            abbr: 1,
+            date_established: 1,
           },
         },
         {
@@ -114,6 +120,12 @@ router.get("/customers", async (_req: Request, res: Response) => {
             lastLogin: "$updatedAt",
             planName: 1,
             planAmount: 1,
+            currency: 1,
+            country: 1,
+            tax_id: 1,
+            domain: 1,
+            abbr: 1,
+            date_established: 1,
             status: {
               $ifNull: [
                 "$planStatus",
