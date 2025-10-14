@@ -16,4 +16,6 @@ export const PlanCreateURL = '/resource/Plans';
 
 export const PlanUpdateURL = '/resource/Plan';
 
-export const SubscribeCmpyPlanURL = '/resource/Company'
+export const SubscribeCmpyPlanURL = '/resource/Company';
+
+export const CountryURL = '/resource/Country';

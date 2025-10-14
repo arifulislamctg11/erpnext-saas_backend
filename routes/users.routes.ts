@@ -213,7 +213,12 @@ router.post("/register", async (req: Request, res: Response) => {
         company_name: companyName,
         abbr: abbr,
         default_currency: currency,
+        country: country,
+        tax_id: tax_id,
+        domain: domain,
+        date_of_establishment: date_established
       };
+      console.log('check ---------', cmpy_obj)
       const cmpy_create = await CreateCmpy(cmpy_obj);
 
       const user_obj = {

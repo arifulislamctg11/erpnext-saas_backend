@@ -3,6 +3,7 @@ import {
   BASEURL,
   CmpyCreateUrl,
   CmpyInfoCheck,
+  CountryURL,
   EmployeeCreateUrl,
   UserCreateUrl,
   UserInfoCheck,
@@ -143,7 +144,7 @@ export const ResourceEmployee = async (companyName: any) => {
 
 export const UserCmpyInfoCheck = async (filterValue: any) => {
   try {
-    const response: any = await axios.get(`${BASEURL}${filterValue?.name == 'email' ? UserInfoCheck : CmpyInfoCheck}?filters=[["${filterValue?.name}","=","${filterValue?.value}"]]`, {
+    const response: any = await axios.get(`${BASEURL}${filterValue?.name == 'email' || filterValue?.name == 'username' ? UserInfoCheck : CmpyInfoCheck}?filters=[["${filterValue?.name}","=","${filterValue?.value}"]]`, {
       headers: {
         accept: "application/json",
         Authorization: `token ${process.env.TOKEN}`,
@@ -153,5 +154,53 @@ export const UserCmpyInfoCheck = async (filterValue: any) => {
     return response?.data;
   } catch (err) {
     console.log("UserCmpyInfoCheck err", err);
+  }
+};
+
+
+export const GetCountry = async () => {
+  try {
+    const response: any = await axios.get(`${BASEURL}${CountryURL}`, {
+      headers: {
+        accept: "application/json",
+        Authorization: `token ${process.env.TOKEN}`,
+      },
+    });
+  
+    return response?.data;
+  } catch (err) {
+    console.log("GetCountry err", err);
+  }
+};
+
+export const GetCurrency = async () => {
+  try {
+    const response: any = await axios.get(`${BASEURL}/resource/Currency`, {
+      headers: {
+        accept: "application/json",
+        Authorization: `token ${process.env.TOKEN}`,
+      },
+    });
+  
+    return response?.data;
+  } catch (err) {
+    console.log("GetCurrency err", err);
+  }
+};
+
+export const GetUserSingle = async (email: any) => {
+  try {
+    const response: any = await axios.get(
+      `${BASEURL}${UserCreateUrl}/${email}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `token ${process.env.TOKEN}`,
+        },
+      }
+    );
+    return response?.data;
+  } catch (err) {
+    console.log("GetUserSingle erro", err);
   }
 };
