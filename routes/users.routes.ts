@@ -38,7 +38,7 @@ router.get("/users", async (req: Request, res: Response) => {
 
     const user = await users.findOne(
       { email: String(email).toLowerCase() },
-      { projection: { email: 1, role: 1, _id: 0 } }
+      { projection: { email: 1, role: 1, _id: 0 , isActive: 1} }
     );
 
     if (!user) {
@@ -126,12 +126,7 @@ router.get("/customers", async (_req: Request, res: Response) => {
             domain: 1,
             abbr: 1,
             date_established: 1,
-            status: {
-              $ifNull: [
-                "$planStatus",
-                { $cond: [{ $eq: ["$isActive", true] }, "active", "inactive"] },
-              ],
-            },
+            isActive: 1
           },
         },
         { $sort: { createdAt: -1 } },

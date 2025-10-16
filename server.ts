@@ -19,6 +19,7 @@ import {
   GetUserSingle,
   ResourceEmployee,
   SetUserPermission,
+  UpdateCmpy,
   UpdateEmployee,
   UpdateUser,
   UserCmpyInfoCheck,
@@ -1411,6 +1412,59 @@ app.get("/single-user", async (req: Request, res: Response) => {
     });
   }
 });
+
+
+
+app.put("/user-enable-disable", async (req: Request, res: Response) => {
+  try {
+    const { email, status , companyName} = req.body;
+console.log(req.body)
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({
+        success: false,
+        error: "Missing or invalid 'email' in query parameters.",
+      });
+    }
+
+    const isActive = status // Convert string to boolean
+
+    const db = client.db("erpnext_saas");
+    const users = db.collection("users");
+
+    const actionObj = isActive ? {enabled: 0} : {disabled: 1}
+    console.log('check ===>', actionObj)
+    const updateUserinErp = await UpdateUser(email, actionObj)
+    const updateCmpyErp = await UpdateCmpy(actionObj, companyName)
+    const result = await users.updateOne(
+      { email }, // Match by email
+      { $set: { isActive } } // Update isActive
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found with the provided email.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `User with email ${email} updated successfully.`,
+      updated: result.modifiedCount,
+      updateUserinErp,
+      updateCmpyErp
+    });
+
+  } catch (err) {
+    console.error("Update error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      details: err,
+    });
+  }
+});
+
 export default app;
 
 if (process.env.VERCEL !== "1") {

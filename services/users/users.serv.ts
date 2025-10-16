@@ -204,3 +204,21 @@ export const GetUserSingle = async (email: any) => {
     console.log("GetUserSingle erro", err);
   }
 };
+
+export const UpdateCmpy = async (reqBody: any, cmpyName: any) => {
+  try {
+    const response: any = await axios.put(
+      `${BASEURL}${CmpyCreateUrl}/${cmpyName}`,
+      reqBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `token ${process.env.TOKEN}`,
+        },
+      }
+    );
+    return response?.data;
+  } catch (err) {
+    console.log("test erro", err);
+  }
+};
