@@ -10,17 +10,20 @@ import {
   UserPermissionUrl,
 } from "../../util/urls.js";
 import dotenv from "dotenv";
+import { getAppSecret } from "../../server.js";
 dotenv.config();
 
 export const CreateCmpy = async (reqBody: any) => {
+  const appSecret = await getAppSecret();
+
   try {
     const response: any = await axios.post(
-      `${BASEURL}${CmpyCreateUrl}`,
+      `${appSecret.api_url}${CmpyCreateUrl}`,
       reqBody,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
@@ -31,14 +34,16 @@ export const CreateCmpy = async (reqBody: any) => {
 };
 
 export const CreateUser = async (reqBody: any) => {
+  const appSecret = await getAppSecret();
+
   try {
     const response: any = await axios.post(
-      `${BASEURL}${UserCreateUrl}`,
+      `${appSecret.api_url}${UserCreateUrl}`,
       reqBody,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
@@ -49,6 +54,8 @@ export const CreateUser = async (reqBody: any) => {
 };
 
 export const SetUserPermission = async (email:any) => {
+  const appSecret = await getAppSecret();
+
   try {
     const userPermissionData = {
       "user": email,
@@ -58,12 +65,12 @@ export const SetUserPermission = async (email:any) => {
     }
 
     const userPermissionResponse: any = await axios.post(
-      `${BASEURL}${UserPermissionUrl}`,
+      `${appSecret.api_url}${UserPermissionUrl}`,
       userPermissionData,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
@@ -74,14 +81,16 @@ export const SetUserPermission = async (email:any) => {
 }
 
 export const CreateEmployee = async (reqBody: any) => {
+  const appSecret = await getAppSecret();
+
   try {
     const response: any = await axios.post(
-      `${BASEURL}${EmployeeCreateUrl}`,
+      `${appSecret.api_url}${EmployeeCreateUrl}`,
       reqBody,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
@@ -92,14 +101,16 @@ export const CreateEmployee = async (reqBody: any) => {
 };
 
 export const UpdateEmployee = async (emp_id: any, reqBody: any) => {
+  const appSecret = await getAppSecret();
+
   try {
     const response: any = await axios.put(
-      `${BASEURL}${EmployeeCreateUrl}/${emp_id}`,
+      `${appSecret.api_url}${EmployeeCreateUrl}/${emp_id}`,
       reqBody,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
@@ -110,14 +121,16 @@ export const UpdateEmployee = async (emp_id: any, reqBody: any) => {
 };
 
 export const UpdateUser = async (id: any, reqBody: any) => {
+  const appSecret = await getAppSecret();
+
   try {
     const response: any = await axios.put(
-      `${BASEURL}${UserCreateUrl}/${id}`,
+      `${appSecret.api_url}${UserCreateUrl}/${id}`,
       reqBody,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
@@ -128,11 +141,13 @@ export const UpdateUser = async (id: any, reqBody: any) => {
 };
 
 export const ResourceEmployee = async (companyName: any) => {
+  const appSecret = await getAppSecret();
+
   try {
-    const response: any = await axios.get(`${BASEURL}${EmployeeCreateUrl}?filters=[["company","=","${companyName}"]]&fields=["*"]`, {
+    const response: any = await axios.get(`${appSecret.api_url}${EmployeeCreateUrl}?filters=[["company","=","${companyName}"]]&fields=["*"]`, {
       headers: {
         accept: "application/json",
-        Authorization: `token ${process.env.TOKEN}`,
+        Authorization: `token ${appSecret.api_token}`,
       },
     });
     console.log("response", response?.data);
@@ -143,11 +158,12 @@ export const ResourceEmployee = async (companyName: any) => {
 };
 
 export const UserCmpyInfoCheck = async (filterValue: any) => {
+  const appSecret = await getAppSecret();
   try {
-    const response: any = await axios.get(`${BASEURL}${filterValue?.name == 'email' || filterValue?.name == 'username' ? UserInfoCheck : CmpyInfoCheck}?filters=[["${filterValue?.name}","=","${filterValue?.value}"]]`, {
+    const response: any = await axios.get(`${appSecret.api_url}${filterValue?.name == 'email' || filterValue?.name == 'username' ? UserInfoCheck : CmpyInfoCheck}?filters=[["${filterValue?.name}","=","${filterValue?.value}"]]`, {
       headers: {
         accept: "application/json",
-        Authorization: `token ${process.env.TOKEN}`,
+        Authorization: `token ${appSecret.api_token}`,
       },
     });
     console.log("UserCmpyInfoCheck ===>", response?.data);
@@ -157,13 +173,13 @@ export const UserCmpyInfoCheck = async (filterValue: any) => {
   }
 };
 
-
 export const GetCountry = async () => {
+  const appSecret = await getAppSecret();
   try {
-    const response: any = await axios.get(`${BASEURL}${CountryURL}`, {
+    const response: any = await axios.get(`${appSecret.api_url}${CountryURL}`, {
       headers: {
         accept: "application/json",
-        Authorization: `token ${process.env.TOKEN}`,
+        Authorization: `token ${appSecret.api_token}`,
       },
     });
   
@@ -174,11 +190,12 @@ export const GetCountry = async () => {
 };
 
 export const GetCurrency = async () => {
+    const appSecret = await getAppSecret();
   try {
-    const response: any = await axios.get(`${BASEURL}/resource/Currency`, {
+    const response: any = await axios.get(`${appSecret.api_url}/resource/Currency`, {
       headers: {
         accept: "application/json",
-        Authorization: `token ${process.env.TOKEN}`,
+        Authorization: `token ${appSecret.api_token}`,
       },
     });
   
@@ -189,13 +206,15 @@ export const GetCurrency = async () => {
 };
 
 export const GetUserSingle = async (email: any) => {
+      const appSecret = await getAppSecret();
+
   try {
     const response: any = await axios.get(
-      `${BASEURL}${UserCreateUrl}/${email}`,
+      `${appSecret.api_url}${UserCreateUrl}/${email}`,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
@@ -206,14 +225,15 @@ export const GetUserSingle = async (email: any) => {
 };
 
 export const UpdateCmpy = async (reqBody: any, cmpyName: any) => {
+        const appSecret = await getAppSecret();
   try {
     const response: any = await axios.put(
-      `${BASEURL}${CmpyCreateUrl}/${cmpyName}`,
+      `${appSecret.api_url}${CmpyCreateUrl}/${cmpyName}`,
       reqBody,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );

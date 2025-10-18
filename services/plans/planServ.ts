@@ -5,17 +5,20 @@ import {
   SubscribeCmpyPlanURL,
 } from "../../util/urls.js";
 import dotenv from "dotenv";
+import { getAppSecret } from "../../server.js";
 dotenv.config();
 
 export const CreatePlan = async (reqBody: any) => {
+  const appSecret = await getAppSecret();
+  
   try {
     const response: any = await axios.post(
-      `${BASEURL}${PlanCreateURL}`,
+      `${appSecret.api_url}${PlanCreateURL}`,
       reqBody,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
@@ -26,14 +29,16 @@ export const CreatePlan = async (reqBody: any) => {
 };
 
 export const UpdatePlan = async (reqBody: any) => {
+    const appSecret = await getAppSecret();
+
   try {
     const response: any = await axios.put(
-      `${BASEURL}${PlanCreateURL}/${reqBody?.name}`,
+      `${appSecret.api_url}${PlanCreateURL}/${reqBody?.name}`,
       reqBody,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
@@ -43,18 +48,19 @@ export const UpdatePlan = async (reqBody: any) => {
   }
 };
 
-
 export const SubscribeCmpyPlan = async (reqBody: any) => {
+      const appSecret = await getAppSecret();
+  
   try {
     const response: any = await axios.put(
-      `${BASEURL}${SubscribeCmpyPlanURL}/${reqBody?.companyName}`,
+      `${appSecret.api_url}${SubscribeCmpyPlanURL}/${reqBody?.companyName}`,
       {
         "custom_subscribed_plan": reqBody?.planName
       },
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `token ${process.env.TOKEN}`,
+          Authorization: `token ${appSecret.api_token}`,
         },
       }
     );
