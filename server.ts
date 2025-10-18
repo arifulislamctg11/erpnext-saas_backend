@@ -54,6 +54,14 @@ async function connectMongo() {
 }
 connectMongo();
 
+export const getAppSecret = async (): Promise<any> => {
+    const db = client.db("erpnext_saas");
+    const PlanCollection = db.collection("admin_secret");
+    const result: any = await PlanCollection.find({}).toArray();
+
+    return result[0]
+}
+
 const getStripeInst = async (): Promise<any> => {
     const db = client.db("erpnext_saas");
     const PlanCollection = db.collection("admin_secret");
@@ -1366,7 +1374,8 @@ app.post("/update-admin-secret", async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      message: 'updated successfully!'
+      message: 'updated successfully!',
+      result
     });
   } catch (err) {
     return res.status(500).json({
@@ -1413,12 +1422,10 @@ app.get("/single-user", async (req: Request, res: Response) => {
   }
 });
 
-
-
 app.put("/user-enable-disable", async (req: Request, res: Response) => {
   try {
     const { email, status , companyName} = req.body;
-console.log(req.body)
+
     if (!email || typeof email !== "string") {
       return res.status(400).json({
         success: false,
