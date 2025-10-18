@@ -16,6 +16,7 @@ import {
   CreateUser,
   GetCountry,
   GetCurrency,
+  GetUserEmployee,
   GetUserSingle,
   ResourceEmployee,
   SetUserPermission,
@@ -1407,7 +1408,7 @@ app.get("/country", async (req: Request, res: Response) => {
 app.get("/single-user", async (req: Request, res: Response) => {
   try {
     const {email} = req.query
-    const userData = await GetUserSingle(email);
+    const userData = await GetUserEmployee(email);
 
     return res.status(200).json({
       success: true,
@@ -1424,44 +1425,53 @@ app.get("/single-user", async (req: Request, res: Response) => {
 
 app.put("/user-enable-disable", async (req: Request, res: Response) => {
   try {
-    const { email, status , companyName} = req.body;
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({
-        success: false,
-        error: "Missing or invalid 'email' in query parameters.",
-      });
+    const { email, status , companyName, isEmployee, employeeId} = req.body;
+    if(isEmployee){
+      const empUpdate = await UpdateEmployee(employeeId, {status});
+        return res.status(200).json({
+          success: true,
+          message: `User with email ${email} updated successfully.`,
+          empUpdate
+        });
     }
+    else{
+      if (!email || typeof email !== "string") {
+          return res.status(400).json({
+            success: false,
+            error: "Missing or invalid 'email' in query parameters.",
+          });
+        }
 
-    const isActive = status // Convert string to boolean
+        const isActive = status // Convert string to boolean
 
-    const db = client.db("erpnext_saas");
-    const users = db.collection("users");
+        const db = client.db("erpnext_saas");
+        const users = db.collection("users");
 
-    const actionObj = isActive ? {enabled: 0} : {disabled: 1}
-    console.log('check ===>', actionObj)
-    const updateUserinErp = await UpdateUser(email, actionObj)
-    const updateCmpyErp = await UpdateCmpy(actionObj, companyName)
-    const result = await users.updateOne(
-      { email }, // Match by email
-      { $set: { isActive } } // Update isActive
-    );
+        const UseractionObj = isActive ? {enabled: 1} :  {enabled: 0}
+        const EmpactionObj = isActive ?  {disabled: 0} : {disabled: 1}
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found with the provided email.",
-      });
+        const updateUserinErp = await UpdateUser(email, UseractionObj)
+        const updateCmpyErp = await UpdateCmpy(EmpactionObj, companyName)
+        const result = await users.updateOne(
+          { email }, // Match by email
+          { $set: { isActive } } // Update isActive
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).json({
+            success: false,
+            error: "User not found with the provided email.",
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: `User with email ${email} updated successfully.`,
+          updated: result.modifiedCount,
+          updateUserinErp,
+          updateCmpyErp
+        });
     }
-
-    return res.status(200).json({
-      success: true,
-      message: `User with email ${email} updated successfully.`,
-      updated: result.modifiedCount,
-      updateUserinErp,
-      updateCmpyErp
-    });
-
   } catch (err) {
     console.error("Update error:", err);
     return res.status(500).json({

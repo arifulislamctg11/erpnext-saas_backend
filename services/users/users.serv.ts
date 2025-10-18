@@ -242,3 +242,22 @@ export const UpdateCmpy = async (reqBody: any, cmpyName: any) => {
     console.log("test erro", err);
   }
 };
+
+export const GetUserEmployee = async (email: any) => {
+      const appSecret = await getAppSecret();
+
+  try {
+    const response: any = await axios.get(
+      `${appSecret.api_url}${EmployeeCreateUrl}/${email}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `token ${appSecret.api_token}`,
+        },
+      }
+    );
+    return response?.data;
+  } catch (err) {
+    console.log("GetUserSingle erro", err);
+  }
+};
