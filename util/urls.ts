@@ -18,4 +18,4 @@ export const PlanUpdateURL = '/resource/Plan';
 
 export const SubscribeCmpyPlanURL = '/resource/Company';
 
-export const CountryURL = '/resource/Country';
+export const CountryURL = '/resource/Country?limit_page_length=500';

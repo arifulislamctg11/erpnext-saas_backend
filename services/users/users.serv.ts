@@ -192,7 +192,7 @@ export const GetCountry = async () => {
 export const GetCurrency = async () => {
     const appSecret = await getAppSecret();
   try {
-    const response: any = await axios.get(`${appSecret.api_url}/resource/Currency`, {
+    const response: any = await axios.get(`${appSecret.api_url}/resource/Currency?limit_page_length=500`, {
       headers: {
         accept: "application/json",
         Authorization: `token ${appSecret.api_token}`,
