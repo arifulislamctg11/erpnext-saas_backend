@@ -49,7 +49,7 @@ export const CreateUser = async (reqBody: any) => {
     );
     return response?.data;
   } catch (err) {
-    console.log("test erro", err);
+    console.log("test error", err);
   }
 };
 
