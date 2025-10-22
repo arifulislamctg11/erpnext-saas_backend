@@ -213,7 +213,7 @@ router.post("/register", async (req: Request, res: Response) => {
         domain: domain,
         date_of_establishment: date_established
       };
-      console.log('check ---------', cmpy_obj)
+      
       const cmpy_create = await CreateCmpy(cmpy_obj);
 
       const user_obj = {
