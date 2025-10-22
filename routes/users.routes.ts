@@ -162,6 +162,9 @@ router.post("/register", async (req: Request, res: Response) => {
       tax_id,
       domain,
       date_established,
+      date_of_birth,
+      date_of_joining,
+      gender
     } = req.body;
 
     if (!email || !password || !companyName || !firstName || !lastName) {
@@ -201,6 +204,9 @@ router.post("/register", async (req: Request, res: Response) => {
       updatedAt: new Date(),
       isActive: true,
       role: "user",
+      date_of_birth,
+      date_of_joining,
+      gender
     });
 
     if (result.insertedId) {
@@ -229,9 +235,9 @@ router.post("/register", async (req: Request, res: Response) => {
         employee_name: `${firstName} ${lastName}`,
         first_name: firstName,
         last_name: lastName,
-        gender: "Male",
-        date_of_birth: "1990-05-10",
-        date_of_joining: "2023-09-01",
+        gender: gender,
+        date_of_birth: date_of_birth,
+        date_of_joining: date_of_joining,
         company: companyName,
         employment_type: "Full-time",
       };
