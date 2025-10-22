@@ -1482,6 +1482,114 @@ app.put("/user-enable-disable", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/add-erp-details", async (req: Request, res: Response) => {
+  try {
+    const {email} = req.query;
+    const db = client.db("erpnext_saas");
+    const UserCollection = db.collection("users");
+    const profileComplete = db.collection("profilecompletes");
+
+    const userData: any = await UserCollection.findOne({email: email})
+    const {
+        companyName,
+        firstName,
+        lastName,
+        country,
+        currency,
+        abbr,
+        tax_id,
+        domain,
+        date_established,
+        date_of_birth,
+        date_of_joining,
+        gender,
+    } = userData;
+
+     const cmpy_obj = {
+        company_name: companyName,
+        abbr: abbr,
+        default_currency: currency,
+        country: country,
+        tax_id: tax_id,
+        domain: domain,
+        date_of_establishment: date_established
+      };
+      
+      const cmpy_create = await CreateCmpy(cmpy_obj);
+
+      const user_obj = {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        enabled: 1,
+      };
+      
+      const user_create = await CreateUser(user_obj);
+
+      const employee_obj = {
+        employee_name: `${firstName} ${lastName}`,
+        first_name: firstName,
+        last_name: lastName,
+        gender: gender,
+        date_of_birth: date_of_birth,
+        date_of_joining: date_of_joining,
+        company: companyName,
+        employment_type: "Full-time",
+      };
+
+      const exmployee_create = await CreateEmployee(employee_obj);
+
+      const employee_updateobj = {
+        user_id: email,
+      };
+
+      const exmployee_update = await UpdateEmployee(
+        exmployee_create?.data?.name,
+        employee_updateobj
+      );
+
+      const user_updateobj = {
+        new_password: "My$ecureP@ssw0rd",
+      };
+      const user_update = await UpdateUser(email, user_updateobj);
+      const setUserPermission = await SetUserPermission(email);
+    
+    const result = await profileComplete.updateOne(
+      { email }, // Match by email
+      { $set: { 
+        Company_Creation: true,
+        Company_Creation_prcnt: 25,
+        User_Creation: true,
+        User_Creation_prcnt: 25,
+        Employee_Creation: true,
+        Employee_Creation_prcnt: 25,
+        Assignment_Creation: true,
+        Assignment_Creation_prcnt: 25,
+       } }
+    );
+
+    const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName,email);
+    await sendEmail(email, welcomeEmailTemplate.subject, welcomeEmailTemplate.email_Body);
+
+    return res.status(200).json({
+      success: true,
+      data: userData,
+      user_update,
+      setUserPermission,
+      exmployee_update,
+      exmployee_create,
+      user_create,
+      cmpy_create
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      err
+    });
+  }
+});
+
 export default app;
 
 if (process.env.VERCEL !== "1") {
