@@ -2,7 +2,7 @@ import express from "express";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
 import { MongoClient, ServerApiVersion } from "mongodb";
-import { getWelcomeEmailTemplate } from "../util/welcomeEmailTemplate.js";
+import { getWelcomeEmailTemplate, getWelcomeEmailTemplate2 } from "../util/welcomeEmailTemplate.js";
 import { sendEmail } from "../services/emailSend.js";
 import {
   CreateCmpy,
@@ -162,6 +162,9 @@ router.post("/register", async (req: Request, res: Response) => {
       tax_id,
       domain,
       date_established,
+      date_of_birth,
+      date_of_joining,
+      gender
     } = req.body;
 
     if (!email || !password || !companyName || !firstName || !lastName) {
@@ -201,74 +204,30 @@ router.post("/register", async (req: Request, res: Response) => {
       updatedAt: new Date(),
       isActive: true,
       role: "user",
+      date_of_birth,
+      date_of_joining,
+      gender
     });
 
     if (result.insertedId) {
-      const cmpy_obj = {
-        company_name: companyName,
-        abbr: abbr,
-        default_currency: currency,
-        country: country,
-        tax_id: tax_id,
-        domain: domain,
-        date_of_establishment: date_established
-      };
-      
-      const cmpy_create = await CreateCmpy(cmpy_obj);
-
-      const user_obj = {
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        enabled: 1,
-      };
-      
-      const user_create = await CreateUser(user_obj);
-
-      const employee_obj = {
-        employee_name: `${firstName} ${lastName}`,
-        first_name: firstName,
-        last_name: lastName,
-        gender: "Male",
-        date_of_birth: "1990-05-10",
-        date_of_joining: "2023-09-01",
-        company: companyName,
-        employment_type: "Full-time",
-      };
-
-      const exmployee_create = await CreateEmployee(employee_obj);
-
-      const employee_updateobj = {
-        user_id: email,
-      };
-
-      const exmployee_update = await UpdateEmployee(
-        exmployee_create?.data?.name,
-        employee_updateobj
-      );
-
-      const user_updateobj = {
-        new_password: "My$ecureP@ssw0rd",
-      };
-      const user_update = await UpdateUser(email, user_updateobj);
-      const setUserPermission = await SetUserPermission(email);
+     
 
       const profileCompleteResult = await profileComplete.insertOne({
-        Company_Creation: true,
-        Company_Creation_prcnt: 25,
-        User_Creation: true,
-        User_Creation_prcnt: 25,
-        Employee_Creation: true,
-        Employee_Creation_prcnt: 25,
-        Assignment_Creation: true,
-        Assignment_Creation_prcnt: 25,
+        Company_Creation: false,
+        Company_Creation_prcnt: 0,
+        User_Creation: false,
+        User_Creation_prcnt: 0,
+        Employee_Creation: false,
+        Employee_Creation_prcnt: 0,
+        Assignment_Creation: false,
+        Assignment_Creation_prcnt: 0,
         email,
       });
       
       // Send welcome email after successful registration
 
       try {
-        const welcomeEmailTemplate = getWelcomeEmailTemplate(firstName, companyName,email);
+        const welcomeEmailTemplate = getWelcomeEmailTemplate2(firstName, companyName,email);
         await sendEmail(email, welcomeEmailTemplate.subject, welcomeEmailTemplate.email_Body);
       } catch (emailError) {
         console.error('Welcome email failed:', emailError);
@@ -278,12 +237,6 @@ router.post("/register", async (req: Request, res: Response) => {
         success: true,
         message: "User registered successfully",
         userId: result.insertedId,
-        user_update,
-        setUserPermission,
-        exmployee_update,
-        exmployee_create,
-        user_create,
-        cmpy_create
       });
     } else {
       return res.status(201).json({
